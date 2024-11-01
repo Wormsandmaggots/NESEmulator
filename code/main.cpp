@@ -1,11 +1,15 @@
 #include <iostream>
 
 #include <SDL.h>
+#include "Cartridge.h"
+#include "Logger.h"
 
 using namespace std;
 
 int main(int argc, char* argv[])
 {
+    Cartridge cartridge;
+    cartridge.load("test.nes");
     if (SDL_Init(SDL_INIT_VIDEO) != 0)
     {
         return 1;
