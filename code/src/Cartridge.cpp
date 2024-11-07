@@ -10,7 +10,7 @@
 
 #include "Settings.h"
 
-bool Cartridge::load(const char *path) {
+bool Cartridge::load() {
     nesFile = new NESFile;
     FileHeader header{};
 
@@ -46,4 +46,8 @@ bool Cartridge::load(const char *path) {
     }
 
     return true;
+}
+
+Cartridge::Cartridge(const char *path) {
+    this->path = path;
 }

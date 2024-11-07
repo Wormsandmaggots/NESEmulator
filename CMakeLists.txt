@@ -38,6 +38,9 @@ add_executable(NESEmulator
         code/src/Opcodes.cpp
         code/inc/Opcodes.h
         code/inc/Utils.h
+        code/inc/LogMessages.h
+        code/inc/NESHelpers.h
+        code/src/NESHelpers.cpp
 )
 
 find_package(SDL2 REQUIRED)

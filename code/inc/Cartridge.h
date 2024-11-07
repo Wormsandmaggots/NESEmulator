@@ -11,7 +11,7 @@
 
 struct FileHeader
 {
-    const char magic[4];         // "NES" + 0x1A
+    const char magic[4]; // "NES" + 0x1A
     u8 prg_rom_size;     // Liczba 16 KB banków PRG-ROM
     u8 chr_rom_size;     // Liczba 8 KB banków CHR-ROM
     u8 flag6;            // Flagi dla mirroring, trenera, mappera
@@ -32,7 +32,8 @@ struct NESFile {
 
 class Cartridge {
 public:
-    bool load(const char* path);
+    Cartridge(const char* path);
+    bool load();
 
 private:
     NESFile* nesFile = null;

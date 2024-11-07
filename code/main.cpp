@@ -2,14 +2,22 @@
 
 #include <SDL.h>
 #include "Cartridge.h"
+#include "CPU.h"
 #include "Logger.h"
 
 using namespace std;
 
 int main(int argc, char* argv[])
 {
-    Cartridge cartridge;
-    cartridge.load("test.nes");
+    Cartridge cartridge("test.nes");
+    cartridge.load();
+    CPU cpu;
+
+    cpu.init();
+
+    cpu.execute(opcodes::Instructions[0]);
+    cpu.execute(opcodes::Instructions[1]);
+
     if (SDL_Init(SDL_INIT_VIDEO) != 0)
     {
         return 1;

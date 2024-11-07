@@ -7,7 +7,7 @@
 
 #include "Types.h"
 
-constexpr u16 ramSize = 0x10000;
+constexpr u32 ramSize = 0x10000;
 constexpr u8 eof = 0x1A;
 constexpr const char* NES = "NES\x1A";
 
