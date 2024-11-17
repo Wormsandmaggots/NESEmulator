@@ -6,6 +6,9 @@
 #include "Utils.h"
 
 void CPU::init() {
+
+    initOpcodes();
+
     regs = new Registers;
     mem = new Memory(ramSize);
     mem->init();
@@ -29,33 +32,27 @@ void CPU::cleanup() {
     safeDelete(mem);
 }
 
-void CPU::execute(opcodes::InstructionTypes var) {
-    std::visit([this](auto&& instr) {
-        if constexpr (std::is_same_v<std::decay_t<decltype(instr)>, Instruction<void*>>) {
-            InstructionContext<void*> ic;
-            ic.mem = mem;
-            ic.regs = regs;
+void CPU::execute(Instruction instruction) {
+    InstructionContext ic;
 
-            instr(ic);
-            INFOLOG("void*");
-        }
-        else if constexpr (std::is_same_v<std::decay_t<decltype(instr)>, Instruction<u8>>) {
-            InstructionContext<u8> ic;
-            ic.mem = mem;
-            ic.regs = regs;
-            ic.value = getFetchedValue<u8>(instr.mode);
+    ic.mem = mem;
+    ic.regs = regs;
+    ic.mode = instruction.mode;
 
-            instr(ic);
-        }
-        else if constexpr (std::is_same_v<std::decay_t<decltype(instr)>, Instruction<u16>>) {
-            InstructionContext<u16> ic;
-            ic.mem = mem;
-            ic.regs = regs;
-            ic.value = getFetchedValue<u16>(instr.mode);
+    if(opcodes::u16AddressingMode(instruction.mode))
+    {
+        ic.value = getFetchedValue<u16>(instruction.mode);
+    }
+    else if(instruction.mode == AddressingMode::Implicit)
+    {
+        ic.value = null;
+    }
+    else
+    {
+        ic.value = getFetchedValue<u8>(instruction.mode);
+    }
 
-            instr(ic);
-        }
-    }, var);
+    instruction(ic);
 }
 
 u8 CPU::fetchImmediate() const {

@@ -22,11 +22,7 @@ public:
     void reset() const;
     void cleanup();
 
-    template<typename valueType = u8>
-    void execute(Instruction<valueType> instruction);
-
-    //template<typename valueType>
-    void execute(opcodes::InstructionTypes var);
+    void execute(Instruction var);
 
 private:
     Registers* regs = null;
@@ -81,8 +77,6 @@ valueType CPU::getFetchedValue(AddressingMode addressing_mode) {
 
     if constexpr (std::is_same<valueType, u16>::value) {
         switch (addressing_mode) {
-            case AddressingMode::Absolute:
-                return fetchAbsolute();
             case AddressingMode::Indirect:
                 return fetchIndirect();
             case AddressingMode::Relative:
@@ -96,57 +90,5 @@ valueType CPU::getFetchedValue(AddressingMode addressing_mode) {
     ERRORLOG(error::unsupportedTemplateType);
     return -1;
 }
-
-template<typename valueType>
-void CPU::execute(Instruction<valueType> instruction) {
-    if constexpr (std::is_same_v<valueType, void*>) {
-        InstructionContext<void*> context;
-        context.mem = this->mem;
-        context.regs = this->regs;
-
-        instruction(context);
-    }
-    else {
-        InstructionContext<valueType> context;
-        context.mem = this->mem;
-        context.regs = this->regs;
-        context.value = getFetchedValue<valueType>(instruction.mode);
-
-        instruction(context);
-    }
-}
-
-// template<typename T>
-// void CPU::execute(opcodes::InstructionTypes var) {
-//     std::visit([this](auto&& instr) {
-//         if constexpr (sizeof(instr) == sizeof(Instruction<void*>)) {
-//             InstructionContext<T> ic;
-//             ic.mem = mem;
-//             ic.regs = regs;
-//
-//             instr(ic);
-//             INFOLOG("void*");
-//         }
-//         else if constexpr (sizeof(instr) == sizeof(Instruction<u8>)) {
-//             InstructionContext<T> ic;
-//             ic.mem = mem;
-//             ic.regs = regs;
-//             ic.value = getFetchedValue<T>(instr.mode);
-//
-//             instr(ic);
-//             INFOLOG("u8");
-//         }
-//         else if constexpr (sizeof(instr) == sizeof(Instruction<u16>)) {
-//             InstructionContext<T> ic;
-//             ic.mem = mem;
-//             ic.regs = regs;
-//             ic.value = getFetchedValue<T>(instr.mode);
-//
-//             instr(ic);
-//             INFOLOG("u16");
-//         }
-//
-//     }, var);
-// }
 
 #endif //CPU_H

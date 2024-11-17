@@ -10,5 +10,6 @@
 constexpr u32 ramSize = 0x10000;
 constexpr u8 eof = 0x1A;
 constexpr const char* NES = "NES\x1A";
+constexpr i8 illegalCycles = -1;
 
 #endif //SETTINGS_H
