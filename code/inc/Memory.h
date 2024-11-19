@@ -16,10 +16,10 @@ public:
 
     void init();
 
-    u8 read(u16 addr);
+    u8 read(u16 addr) const;
     void write(u16 addr, u8 data);
 
-    u8 operator[](u16 addr);
+    u8 operator[](u16 addr) const;
 
 private:
     std::vector<u8> data;

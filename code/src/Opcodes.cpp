@@ -363,30 +363,23 @@ void setZN(const InstructionContext& ic, const T& check) {
 void opcodes::BRK(InstructionContext ic) {
     ic.setStatus(Break);
 
-    // Zapis rejestru PC (program counter) na stosie (hi i lo)
     ic.write(0x0100 + ic.regs->S--, (ic.regs->PC >> 8) & 0xFF); // Hi byte of PC
     ic.write(0x0100 + ic.regs->S--, ic.regs->PC & 0xFF);        // Lo byte of PC
 
-    // Zapis rejestru P (status) na stosie z ustawioną flagą Break
     ic.write(0x0100 + ic.regs->S--, ic.regs->P | Break);
 
     ic.setStatus(InterruptDisable);
 
-    // Załadowanie adresu przerwania z wektora przerwań (0xFFFE/0xFFFF) do PC
     u8 lo = ic.read(0xFFFE);
     u8 hi = ic.read(0xFFFF);
     ic.regs->PC = (hi << 8) | lo;
 }
 
 void opcodes::PHP(InstructionContext ic) {
-    // Wskaźnik stosu (SP) wskazuje na bieżący adres stosu
     u8 status = ic.regs->P;
 
-    // Zmniejsz wskaźnik stosu (stack pointer)
-    // Na stosie będziemy przechowywać 8-bitową wartość (rejestr P)
     --ic.regs->S;
 
-    // Zapisz status (P) na stosie
     ic.write(ic.regs->S, status);
 }
 
@@ -395,13 +388,10 @@ void opcodes::CLC(InstructionContext ic) {
 }
 
 void opcodes::PLP(InstructionContext ic) {
-    // Zwiększ wskaźnik stosu (SP) przed odczytem, ponieważ stos jest dekrementowany
     ++ic.regs->S;
 
-    // Wczytaj wartość ze stosu (rejestr P)
     u8 status = ic.read(ic.regs->S);
 
-    // Ustawienie flag w rejestrze P (ignorowanie flagi B)
     ic.regs->P = status | Break;  // Flaga B musi być ustawiona na 1
 }
 
@@ -412,25 +402,19 @@ void opcodes::SEC(InstructionContext ic) {
 void opcodes::RTI(InstructionContext ic) {
     ++ic.regs->S;
 
-    // Odczytanie stanu flag procesora (P) ze stosu
     u8 status = ic.read(ic.regs->S);
 
-    // Ustawienie flag w rejestrze P, zresetowanie flagi B (Break flag)
     ic.regs->P = status & ~Break;  // Flaga B (Break) jest resetowana
 
-    // Odczytanie adresu powrotu (PC) ze stosu
     u8 lowByte = ic.read(ic.regs->S++);
     u8 highByte = ic.read(ic.regs->S++);
 
-    // Składamy adres PC z dwóch bajtów
     ic.regs->PC = static_cast<u16>(lowByte) | (static_cast<u16>(highByte) << 8);
 }
 
 void opcodes::PHA(InstructionContext ic) {
-    // Zmniejszenie wskaźnika stosu (S) przed zapisaniem, bo stos jest dekrementowany
     --ic.regs->S;
 
-    // Zapisanie zawartości akumulatora (A) na stos
     ic.write(0x0100 + ic.regs->S, ic.regs->A);
 }
 
@@ -439,22 +423,17 @@ void opcodes::CLI(InstructionContext ic) {
 }
 
 void opcodes::RTS(InstructionContext ic) {
-    // Odczytanie adresu powrotu ze stosu
     const u8 lowByte = ic.read(0x0100 + ic.regs->S++);
     const u8 highByte = ic.read(0x0100 + ic.regs->S++);
 
-    // Złożenie pełnego adresu (little-endian)
     ic.regs->PC = static_cast<u16>(lowByte) | (static_cast<u16>(highByte) << 8);
 
-    // Zwiększenie wskaźnika stosu (S) po odczycie
     ++ic.regs->S;
 }
 
 void opcodes::PLA(InstructionContext ic) {
-    // Odczytanie wartości z stosu i zapisanie jej do akumulatora (A)
-    ic.regs->A = ic.mem->read(0x0100 + ic.regs->S++);
+    ic.regs->A = ic.read(0x0100 + ic.regs->S++);
 
-    // Zwiększenie wskaźnika stosu (S) po odczycie
     ++ic.regs->S;
 }
 
@@ -463,19 +442,16 @@ void opcodes::SEI(InstructionContext ic) {
 }
 
 void opcodes::DEY(InstructionContext ic) {
-    // Dekrementowanie rejestru Y
     --ic.regs->Y;
     setZN(ic, ic.regs->Y);
 }
 
 void opcodes::TXA(InstructionContext ic) {
-    // Przeniesienie wartości z rejestru X do rejestru A
     ic.regs->A = ic.regs->X;
     setZN(ic, ic.regs->A);
 }
 
 void opcodes::TYA(InstructionContext ic) {
-    // Przeniesienie wartości z rejestru Y do rejestru A
     ic.regs->A = ic.regs->Y;
     setZN(ic, ic.regs->A);
 }
@@ -485,7 +461,6 @@ void opcodes::TXS(InstructionContext ic) {
 }
 
 void opcodes::TAY(InstructionContext ic) {
-    // Przeniesienie wartości z rejestru A do rejestru Y
     ic.regs->Y = ic.regs->A;
     setZN(ic, ic.regs->Y);
 }

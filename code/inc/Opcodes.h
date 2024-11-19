@@ -181,8 +181,6 @@ namespace opcodes {
     void BRKimpl(InstructionContext ic);
     void ORAindX(InstructionContext ic);
 
-    //TODO write unique opcodes and think how to resolve the problem with cycles
-
     void Illegal(InstructionContext ic);
 
     inline std::vector<Instruction> Instructions;

@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "Settings.h"
+#include "Utils.h"
 
 bool Cartridge::load() {
     nesFile = new NESFile;
@@ -50,4 +51,8 @@ bool Cartridge::load() {
 
 Cartridge::Cartridge(const char *path) {
     this->path = path;
+}
+
+Cartridge::~Cartridge() {
+    safeDelete(nesFile);
 }

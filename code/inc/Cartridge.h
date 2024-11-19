@@ -12,14 +12,14 @@
 struct FileHeader
 {
     const char magic[4]; // "NES" + 0x1A
-    u8 prg_rom_size;     // Liczba 16 KB banków PRG-ROM
-    u8 chr_rom_size;     // Liczba 8 KB banków CHR-ROM
-    u8 flag6;            // Flagi dla mirroring, trenera, mappera
-    u8 flag7;            // Flagi dla mappera, NES 2.0
-    u8 prg_ram_size;     // Rozmiar PRG-RAM (w bankach 8 KB)
-    u8 flag9;            // Flaga regionu (NTSC/PAL)
-    u8 flag10;           // Dodatkowe rozszerzenia
-    u8 padding[5];       // Zarezerwowane bajty (powinny być zerami)
+    u8 prg_rom_size;     // amount of 16KB PRG_ROM banks
+    u8 chr_rom_size;     // amount of 8KB CHR_ROM banks
+    u8 flag6;            // Flags for mirroring, trainer, mapper
+    u8 flag7;            // Flags for mapper, NES 2.0
+    u8 prg_ram_size;     // Size of PRG_RAM
+    u8 flag9;            // Region flag(NTSC/PAL)
+    u8 flag10;           // Additional extensions
+    u8 padding[5];       // Reserved bytes (should be 0)
 };
 
 struct NESFile {
@@ -33,6 +33,7 @@ struct NESFile {
 class Cartridge {
 public:
     Cartridge(const char* path);
+    ~Cartridge();
     bool load();
 
 private:
