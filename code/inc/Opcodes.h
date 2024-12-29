@@ -177,10 +177,6 @@ namespace opcodes {
     void CLD(InstructionContext ic);//60
 
 
-
-    void BRKimpl(InstructionContext ic);
-    void ORAindX(InstructionContext ic);
-
     void Illegal(InstructionContext ic);
     void Unimplemented(InstructionContext ic);
 
