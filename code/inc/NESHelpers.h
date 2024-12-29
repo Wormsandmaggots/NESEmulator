@@ -74,39 +74,13 @@ namespace cpu {
 }
 
 namespace opcodes {
-    inline bool isBranchInstruction(const u8 opcode) {
-        return opcode == 0x10 || // BPL
-               opcode == 0x30 || // BMI
-               opcode == 0x50 || // BVC
-               opcode == 0x70 || // BVS
-               opcode == 0x90 || // BCC
-               opcode == 0xB0 || // BCS
-               opcode == 0xD0 || // BNE
-               opcode == 0xF0;   // BEQ
-    }
+    bool isBranchInstruction(u8 opcode);
+    bool branchConditionMet(u8 opcode, const cpu::Registers& regs);
+    bool hasPageCrossed(u16 baseAddr, u8 offset);
+    bool u16AddressingMode(cpu::AddressingMode addressingMode);
 
-    inline bool branchConditionMet(const u8 opcode, const cpu::Registers& regs) {
-        switch (opcode) {
-            case 0x10: return !regs.getStatus(cpu::StatusFlag::Negative);   // BPL
-            case 0x30: return regs.getStatus(cpu::StatusFlag::Negative);    // BMI
-            case 0x50: return !regs.getStatus(cpu::StatusFlag::Overflow);   // BVC
-            case 0x70: return regs.getStatus(cpu::StatusFlag::Overflow);    // BVS
-            case 0x90: return !regs.getStatus(cpu::StatusFlag::Carry);      // BCC
-            case 0xB0: return regs.getStatus(cpu::StatusFlag::Carry);       // BCS
-            case 0xD0: return !regs.getStatus(cpu::StatusFlag::Zero);       // BNE
-            case 0xF0: return regs.getStatus(cpu::StatusFlag::Zero);        // BEQ
-            default: return false; // Nieprawidłowa instrukcja skoku
-        }
-    }
-
-    inline bool hasPageCrossed(const u16 baseAddr, const u8 offset) {
-        const u16 newAddr = baseAddr + offset;
-        return (baseAddr & 0xFF00) != (newAddr & 0xFF00);
-    }
-
-    inline bool u16AddressingMode(const cpu::AddressingMode addressingMode) {
-        return addressingMode == cpu::AddressingMode::Indirect ||
-               addressingMode == cpu::AddressingMode::Relative;
+    inline u16 mergeToU16(const u8 low, const u8 high) {
+        return static_cast<u16>(low) | (static_cast<u16>(high) << 8);
     }
 }
 

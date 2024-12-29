@@ -32,15 +32,15 @@ struct NESFile {
 
 class Cartridge {
 public:
-    Cartridge(const char* path);
+    explicit Cartridge(const char* path);
     ~Cartridge();
     bool load();
+
+    const NESFile* getNESFile() const;
 
 private:
     NESFile* nesFile = null;
     const char* path = null;
 };
-
-
 
 #endif //CARTRIDGE_H

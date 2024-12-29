@@ -10,8 +10,9 @@ namespace error {
     constexpr const char* unsupportedTemplateType = "Unsupported template type";
     constexpr const char* unsupportedAddressingModeWithU16 = "Invalid address mode with U16";
     constexpr const char* unsupportedAddressingModeWithU8 = "Invalid address mode with U8";
-    constexpr const char* fetchProblem = "Fetch only applies to u8 or u16";
-    constexpr const char* unimplementedOpcode = "Use of unimplemented opcode, it might be one of illegal opcodes";
+    constexpr const char* fetchProblem = "Fetch only applies to U8 or U16";
+    constexpr const char* unimplementedOpcode = "Use of unimplemented opcode";
+    constexpr const char* illegalOpcode = "Use of illegal opcode";
 }
 
 #endif //LOGMESSAGES_H

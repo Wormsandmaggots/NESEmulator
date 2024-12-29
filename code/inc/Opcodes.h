@@ -182,6 +182,7 @@ namespace opcodes {
     void ORAindX(InstructionContext ic);
 
     void Illegal(InstructionContext ic);
+    void Unimplemented(InstructionContext ic);
 
     inline std::vector<Instruction> Instructions;
 }

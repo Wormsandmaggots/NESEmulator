@@ -49,6 +49,10 @@ bool Cartridge::load() {
     return true;
 }
 
+const NESFile* Cartridge::getNESFile() const {
+    return nesFile;
+}
+
 Cartridge::Cartridge(const char *path) {
     this->path = path;
 }
