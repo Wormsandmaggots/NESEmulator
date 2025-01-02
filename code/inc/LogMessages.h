@@ -13,6 +13,10 @@ namespace error {
     constexpr const char* fetchProblem = "Fetch only applies to U8 or U16";
     constexpr const char* unimplementedOpcode = "Use of unimplemented opcode";
     constexpr const char* illegalOpcode = "Use of illegal opcode";
+    constexpr const char* cantOpenFile = "Can't open file";
+    constexpr const char* unsupportedFileFormat = "Unsupported file format";
+    constexpr const char* invalidVariantTypeGet = "Invalid variant type format";
+    constexpr const char* unsupportedMapper = "Unsupported mapper";
 }
 
 #endif //LOGMESSAGES_H

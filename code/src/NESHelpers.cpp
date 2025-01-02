@@ -34,6 +34,9 @@ bool opcodes::hasPageCrossed(const uint16_t baseAddr, const uint8_t offset) {
 }
 
 bool opcodes::u16AddressingMode(const cpu::AddressingMode addressingMode) {
-    return addressingMode == cpu::AddressingMode::Indirect ||
-       addressingMode == cpu::AddressingMode::Relative;
+    return addressingMode == cpu::AddressingMode::Indirect || addressingMode == cpu::AddressingMode::Absolute;
+}
+
+bool opcodes::i8AddressingMode(const cpu::AddressingMode addressingMode) {
+    return addressingMode == cpu::AddressingMode::Relative;
 }

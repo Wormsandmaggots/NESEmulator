@@ -6,6 +6,7 @@
 #define TYPES_H
 
 #include <cstdint>
+#include "SDL_rect.h"
 
 #define u8 uint8_t
 #define u16 uint16_t
@@ -18,5 +19,7 @@
 #define i64 int64_t
 
 #define null nullptr
+
+#define vec2d SDL_Point
 
 #endif //TYPES_H

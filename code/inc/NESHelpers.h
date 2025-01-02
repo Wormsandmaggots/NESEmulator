@@ -5,7 +5,22 @@
 #ifndef NESHELPERS_H
 #define NESHELPERS_H
 
+#include <iomanip>
+#include <sstream>
+#include <string>
+
 #include "Types.h"
+
+enum Bit : u8 {
+    Bit0 = 0b00000001,
+    Bit1 = 0b00000010,
+    Bit2 = 0b00000100,
+    Bit3 = 0b00001000,
+    Bit4 = 0b00010000,
+    Bit5 = 0b00100000,
+    Bit6 = 0b01000000,
+    Bit7 = 0b10000000,
+};
 
 namespace cpu {
     enum class AddressingMode : i8
@@ -70,6 +85,27 @@ namespace cpu {
         bool getStatus(const StatusFlag flag) const{
             return P & flag;
         }
+
+        std::string toString() const {
+            std::stringstream ss;
+
+            ss << std::hex << std::uppercase << std::setfill('0') << std::setw(2);
+            ss << "A: " << static_cast<int>(A) << std::endl;
+            ss << "X: " << static_cast<int>(X) << std::endl;
+            ss << "Y: " << static_cast<int>(Y) << std::endl;
+            ss << "PC: " << static_cast<int>(PC) << std::endl;
+            ss << "S: " << static_cast<int>(S) << std::endl;
+            ss << "Carry: " << getStatus(Carry) << std::endl;
+            ss << "Zero: " << getStatus(Zero) << std::endl;
+            ss << "Interrupt: " << getStatus(InterruptDisable) << std::endl;
+            ss << "Decimal: " << getStatus(Decimal) << std::endl;
+            ss << "Break: " << getStatus(Break) << std::endl;
+            ss << "Always1: " << getStatus(Always1) << std::endl;
+            ss << "Overflow: " << getStatus(Overflow) << std::endl;
+            ss << "Negative: " << getStatus(Negative) << std::endl;
+
+            return ss.str();
+        }
     };
 }
 
@@ -78,10 +114,21 @@ namespace opcodes {
     bool branchConditionMet(u8 opcode, const cpu::Registers& regs);
     bool hasPageCrossed(u16 baseAddr, u8 offset);
     bool u16AddressingMode(cpu::AddressingMode addressingMode);
+    bool i8AddressingMode(cpu::AddressingMode addressingMode);
 
     inline u16 mergeToU16(const u8 low, const u8 high) {
         return static_cast<u16>(low) | (static_cast<u16>(high) << 8);
     }
+}
+
+namespace ppu {
+    struct Registers {
+        //u8 registers[8];       // Rejestry PPU
+        u8 V;                 // Rejestr adresu (current VRAM address)
+        u16 T;                 // Rejestr adresu tymczasowego
+        u8 X;                  // Przesunięcie przesuwu poziomego
+        u8 W;                  // Flaga przełączania adresu
+    };
 }
 
 #endif //NESHELPERS_H

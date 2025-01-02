@@ -8,8 +8,11 @@
 #include <fstream>
 #include <vector>
 
+#include "Logger.h"
+#include "LogMessages.h"
 #include "Settings.h"
 #include "Utils.h"
+#include "Memory.h"
 
 bool Cartridge::load() {
     nesFile = new NESFile;
@@ -19,13 +22,15 @@ bool Cartridge::load() {
 
     std::ifstream file(path, std::ios::binary);
     if (!file) {
-        throw std::runtime_error("Nie można otworzyć pliku.");
+        ERRORLOG(error::cantOpenFile);
+        return false;
     }
 
     file.read(reinterpret_cast<char*>(&header), sizeof(FileHeader));
 
     if (strncmp(header.magic, NES, 4) != 0) {
-        throw std::runtime_error("Nieprawidłowy plik NES.");
+        ERRORLOG(error::unsupportedFileFormat);
+        return false;
     }
 
     nesFile->has_trainer = header.flag6 & 0x04;
@@ -51,6 +56,25 @@ bool Cartridge::load() {
 
 const NESFile* Cartridge::getNESFile() const {
     return nesFile;
+}
+
+void Cartridge::loadToMemory(Memory* mem) const {
+    switch(nesFile->mapper) {
+        case 0: { //mapper0
+            mem->write(0x8000, nesFile->prg_rom.data(), nesFile->prg_rom.size());
+
+            if(nesFile->prg_rom.size() == 0x4000) {
+                mem->write(0xC000, nesFile->chr_rom.data(), nesFile->chr_rom.size());
+            }
+
+            if (!nesFile->chr_rom.empty()) {
+                mem->write(0x0000, nesFile->chr_rom.data(), nesFile->chr_rom.size());
+            }
+            break;
+        }
+        default:
+            ERRORLOG(error::unsupportedMapper);
+    }
 }
 
 Cartridge::Cartridge(const char *path) {

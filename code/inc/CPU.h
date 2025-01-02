@@ -5,15 +5,23 @@
 #ifndef CPU_H
 #define CPU_H
 
+#include <cassert>
+
 #include "Logger.h"
 #include "LogMessages.h"
 #include "Memory.h"
 #include "Types.h"
 #include "NESHelpers.h"
-#include "Opcodes.h"
 
 using namespace cpu;
+struct Instruction;
 
+enum Interrupt : u8 {
+    None,
+    NMI,
+    BRK,
+    IRQ
+};
 
 class CPU {
 public:
@@ -23,26 +31,41 @@ public:
     void cleanup();
 
     void execute(Instruction var);
+    Instruction getInstruction() const;
+
+    Memory* getMemory() const;
+    Registers* getRegisters() const;
+    u16 fetch(AddressingMode addressing_mode) const;
+
 
 private:
     Registers* regs = null;
     Memory* mem = null;
+    Interrupt interrupt = None;
 
-    u8 fetchImmediate() const;
-    u8 fetchZeroPage() const;
-    u8 fetchZeroPageX() const;
-    u8 fetchZeroPageY() const;
-    u8 fetchAbsolute() const;
-    u8 fetchAbsoluteX() const;
-    u8 fetchAbsoluteY() const;
-    u8 fetchIndirectIndexedX() const;
-    u8 fetchIndirectIndexedY() const;
+    u16 fetchImmediate() const;
+    u16 fetchZeroPage() const;
+    u16 fetchZeroPageX() const;
+    u16 fetchZeroPageY() const;
+    u16 fetchAbsolute() const;
+    u16 fetchAbsoluteX() const;
+    u16 fetchAbsoluteY() const;
+    u16 fetchIndirectIndexedX() const;
+    u16 fetchIndirectIndexedY() const;
+    u16 fetchAccumulator() const;
+    u16 fetchImplicit() const;
 
     u16 fetchIndirect() const;
+
+    //returns offset for PC
     u16 fetchRelative() const;
 
     template<typename valueType>
     valueType getFetchedValue(AddressingMode addressing_mode);
+    void handleInterrupt();
+    void pushByte(uint8_t byte);
+    void pushAddress(uint16_t address);
+    void pushStatus();
 };
 
 template<typename valueType>
@@ -57,8 +80,6 @@ valueType CPU::getFetchedValue(AddressingMode addressing_mode) {
                 return fetchZeroPageX();
             case AddressingMode::ZeroPageIndexedY:
                 return fetchZeroPageY();
-            case AddressingMode::Absolute:
-                return fetchAbsolute();
             case AddressingMode::AbsoluteIndexedX:
                 return fetchAbsoluteX();
             case AddressingMode::AbsoluteIndexedY:
@@ -79,6 +100,16 @@ valueType CPU::getFetchedValue(AddressingMode addressing_mode) {
         switch (addressing_mode) {
             case AddressingMode::Indirect:
                 return fetchIndirect();
+            case AddressingMode::Absolute:
+                return fetchAbsolute();
+            default:
+                ERRORLOG(error::unsupportedAddressingModeWithU16);
+                return -1;
+        }
+    }
+
+    if constexpr (std::is_same<valueType, i8>::value) {
+        switch (addressing_mode) {
             case AddressingMode::Relative:
                 return fetchRelative();
             default:

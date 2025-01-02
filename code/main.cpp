@@ -4,19 +4,22 @@
 #include "Cartridge.h"
 #include "CPU.h"
 #include "Logger.h"
+#include "Opcodes.h"
 
 using namespace std;
 
+
+
 int main(int argc, char* argv[])
 {
-    Cartridge cartridge("test.nes");
-    cartridge.load();
     CPU cpu;
-
     cpu.init();
 
-    cpu.execute(opcodes::Instructions[0]);
-    cpu.execute(opcodes::Instructions[1]);
+    Cartridge cartridge("mario.nes");
+
+    cartridge.load();
+    cartridge.loadToMemory(cpu.getMemory());
+    cpu.reset();
 
     if (SDL_Init(SDL_INIT_VIDEO) != 0)
     {
@@ -58,7 +61,13 @@ int main(int argc, char* argv[])
             {
                 isOn = false;
             }
+
+            if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_s) {
+                INFOLOG(cpu.getRegisters()->toString());
+            }
         }
+
+        cpu.execute(cpu.getInstruction());
 
         SDL_Delay(1);
     }

@@ -10,17 +10,6 @@
 
 using namespace opcodes;
 
-enum Bit : u8 {
-    Bit0 = 0b00000001,
-    Bit1 = 0b00000010,
-    Bit2 = 0b00000100,
-    Bit3 = 0b00001000,
-    Bit4 = 0b00010000,
-    Bit5 = 0b00100000,
-    Bit6 = 0b01000000,
-    Bit7 = 0b10000000,
-};
-
 void opcodes::Illegal(InstructionContext ic) {
     ERRORLOG(error::illegalOpcode);
 }
@@ -32,6 +21,7 @@ void opcodes::Unimplemented(InstructionContext ic) {
 using enum AddressingMode;
 
 #define ILLEGAL_OPCODE Instruction{Illegal, -1, Undefined}
+#define ILLEGAL_NAME "Illegal"
 
 void initOpcodes() {
     Instructions = {
@@ -330,6 +320,296 @@ void initOpcodes() {
         instruction.opcodeAddress = opcode_address;
         opcode_address++;
     }
+
+    Names =
+    {
+        "BRK",
+        "ORA",
+        ILLEGAL_NAME,
+        ILLEGAL_NAME,
+        ILLEGAL_NAME,
+        "ORA",
+        "ASL",
+        ILLEGAL_NAME,
+        "PHP",
+        "ORA",
+        "ASL",
+        ILLEGAL_NAME,
+        ILLEGAL_NAME,
+        "ORA",
+        "ASL",
+        ILLEGAL_NAME,
+
+        //1
+        "BPL",
+        "ORA",
+        ILLEGAL_NAME,
+        ILLEGAL_NAME,
+        ILLEGAL_NAME,
+        "ORA",
+        "ASL",
+        ILLEGAL_NAME,
+        "CLC",
+        "ORA",
+        ILLEGAL_NAME,
+        ILLEGAL_NAME,
+        ILLEGAL_NAME,
+        "ORA",
+        "ASL",
+        ILLEGAL_NAME,
+
+        //2
+        "JSR",
+        "AND",
+        ILLEGAL_NAME,
+        ILLEGAL_NAME,
+        "BIT",
+        "AND",
+        "ROL",
+        ILLEGAL_NAME,
+        "PLP",
+        "AND",
+        "ROL",
+        ILLEGAL_NAME,
+        "BIT",
+        "AND",
+        "ROL",
+        ILLEGAL_NAME,
+
+        //3
+        "BMI",
+        "AND",
+        ILLEGAL_NAME,
+        ILLEGAL_NAME,
+        ILLEGAL_NAME,
+        "AND",
+        "ROL",
+        ILLEGAL_NAME,
+        "SEC",
+        "AND",
+        ILLEGAL_NAME,
+        ILLEGAL_NAME,
+        ILLEGAL_NAME,
+        "AND",
+        "ROL",
+        ILLEGAL_NAME,
+
+        //4
+        "RTI",
+        "EOR",
+        ILLEGAL_NAME,
+        ILLEGAL_NAME,
+        ILLEGAL_NAME,
+        "EOR",
+        "LSR",
+        ILLEGAL_NAME,
+        "PHA",
+        "EOR",
+        "LSR",
+        ILLEGAL_NAME,
+        "JMP",
+        "EOR",
+        "LSR",
+        ILLEGAL_NAME,
+
+        //5
+        "BVC",
+        "EOR",
+        ILLEGAL_NAME,
+        ILLEGAL_NAME,
+        ILLEGAL_NAME,
+        "EOR",
+        "LSR",
+        ILLEGAL_NAME,
+        "CLI",
+        "EOR",
+        ILLEGAL_NAME,
+        ILLEGAL_NAME,
+        ILLEGAL_NAME,
+        "EOR",
+        "LSR",
+        ILLEGAL_NAME,
+
+        //6
+        "RTS",
+        "ADC",
+        ILLEGAL_NAME,
+        ILLEGAL_NAME,
+        ILLEGAL_NAME,
+        "ADC",
+        "ROR",
+        ILLEGAL_NAME,
+        "PLA",
+        "ADC",
+        "ROR",
+        ILLEGAL_NAME,
+        "JMP",
+        "ADC",
+        "ROR",
+        ILLEGAL_NAME,
+
+        //7
+        "BVS",
+        "ADC",
+        ILLEGAL_NAME,
+        ILLEGAL_NAME,
+        ILLEGAL_NAME,
+        "ADC",
+        "ROR",
+        ILLEGAL_NAME,
+        "SEI",
+        "ADC",
+        ILLEGAL_NAME,
+        ILLEGAL_NAME,
+        ILLEGAL_NAME,
+        "ADC",
+        "ROR",
+        ILLEGAL_NAME,
+
+        //8
+        ILLEGAL_NAME,
+        "STA",
+        ILLEGAL_NAME,
+        ILLEGAL_NAME,
+        "STY",
+        "STA",
+        "STX",
+        ILLEGAL_NAME,
+        "DEY",
+        ILLEGAL_NAME,
+        "TXA",
+        ILLEGAL_NAME,
+        "STY",
+        "STA",
+        "STX",
+        ILLEGAL_NAME,
+
+        //9
+        "BCC",
+        "STA",
+        ILLEGAL_NAME,
+        ILLEGAL_NAME,
+        "STY",
+        "STA",
+        "STX",
+        ILLEGAL_NAME,
+        "TYA",
+        "LDA",
+        "TXS",
+        ILLEGAL_NAME,
+        ILLEGAL_NAME,
+        "STA",
+        ILLEGAL_NAME,
+        ILLEGAL_NAME,
+
+        //A
+        "LDY",
+        "LDA",
+        "LDX",
+        ILLEGAL_NAME,
+        "LDY",
+        "LDA",
+        "LDX",
+        ILLEGAL_NAME,
+        "TAY",
+        "LDA",
+        "TAX",
+        ILLEGAL_NAME,
+        "LDY",
+        "LDA",
+        "LDX",
+        ILLEGAL_NAME,
+
+        //B
+        "BCS",
+        "LDA",
+        ILLEGAL_NAME,
+        ILLEGAL_NAME,
+        "LDY",
+        "LDA",
+        "LDX",
+        ILLEGAL_NAME,
+        "CLV",
+        "LDA",
+        "TSX",
+        ILLEGAL_NAME,
+        "LDY",
+        "LDA",
+        "LDX",
+        ILLEGAL_NAME,
+
+        //C
+        "CPY",
+        "CMP",
+        ILLEGAL_NAME,
+        ILLEGAL_NAME,
+        "CPY",
+        "CMP",
+        "DEC",
+        ILLEGAL_NAME,
+        "INY",
+        "CMP",
+        "DEX",
+        ILLEGAL_NAME,
+        "CPY",
+        "CMP",
+        "DEC",
+        ILLEGAL_NAME,
+
+        //D
+        "BNE",
+        "CMP",
+        ILLEGAL_NAME,
+        ILLEGAL_NAME,
+        ILLEGAL_NAME,
+        "CMP",
+        "DEC",
+        ILLEGAL_NAME,
+        "CLD",
+        "CMP",
+        ILLEGAL_NAME,
+        ILLEGAL_NAME,
+        ILLEGAL_NAME,
+        "CMP",
+        "DEC",
+        ILLEGAL_NAME,
+
+        //E
+        "CPX",
+        "SBC",
+        ILLEGAL_NAME,
+        ILLEGAL_NAME,
+        "CPX",
+        "SBC",
+        "INC",
+        ILLEGAL_NAME,
+        "INX",
+        "SBC",
+        "NOP",
+        ILLEGAL_NAME,
+        "CPX",
+        "SBC",
+        "INC",
+        ILLEGAL_NAME,
+
+        //F
+        "BEQ",
+        "SBC",
+        ILLEGAL_NAME,
+        ILLEGAL_NAME,
+        ILLEGAL_NAME,
+        "SBC",
+        "INC",
+        ILLEGAL_NAME,
+        "SED",
+        "SBC",
+        ILLEGAL_NAME,
+        ILLEGAL_NAME,
+        ILLEGAL_NAME,
+        "SBC",
+        "INC",
+        ILLEGAL_NAME,
+    };
 }
 
 //----------------------------------------------------------------------------------------------------------
@@ -359,20 +639,36 @@ void opcodes::BRK(InstructionContext ic) {
     ic.regs->PC = mergeToU16(lo, hi);
 }
 
+// u16 addr = 0;
+//
+// if(ic.holds<u16>()) {
+//     addr = ic.get<u16>();
+// }
+// else {
+//     addr = ic.get<u8>();
+// }
+
 void opcodes::ORA(InstructionContext ic) {
     //u8 operand = ic.value.value_or(0);
-    u8 operand = ic.get<u8>();
+    //u8 operand = ic.get<u8>();
+    // u16 addr = 0;
+    // if(ic.holds<u16>()) {
+    //     addr = ic.get<u16>();
+    // }
+    // else {
+    //     addr = ic.get<u8>();
+    // }
 
     // Wykonaj operację logicznego OR
-    ic.regs->A |= operand;
+    ic.regs->A |= ic.value;
 
     setZN(ic, ic.regs->A);
 }
 
 void opcodes::ASL(InstructionContext ic) {
     // Pobierz wartość (z akumulatora lub pamięci)
-    const u8 operand = ic.get<u8>();
-
+    //const u8 operand = ic.get<u8>();
+    const u8 operand = ic.getValueFromAddress();
     // Ustaw flagę Carry na podstawie bitu 7
     ic.setStatus(Carry, operand & Bit7);
 
@@ -401,11 +697,13 @@ void opcodes::PHP(InstructionContext ic) {
 void opcodes::BPL(InstructionContext ic) {
     if (!ic.getStatus(Negative)) {
         // Oblicz nowy adres PC z uwzględnieniem offsetu
-        i8 offset = static_cast<i8>(ic.get<u8>()); // Offset jest zapisywany jako 8-bitowa liczba ze znakiem
+        //u16 val = ic.get<u16>();
+        i8 offset = static_cast<i8>(ic.getValueFromAddress()); // Offset jest zapisywany jako 8-bitowa liczba ze znakiem
         u16 newPC = static_cast<u16>(ic.regs->PC + offset);
 
         // Ustaw nowy licznik programowy
         ic.regs->PC = newPC;
+        //ic.regs->PC = ic.get<u16>();
     }
 }
 
@@ -414,7 +712,7 @@ void opcodes::CLC(InstructionContext ic) {
 }
 
 void opcodes::JSR(InstructionContext ic) {
-    u16 address = ic.get<u16>();
+    u16 address = ic.value;
 
     // Oblicz adres powrotu (PC - 1, ponieważ JSR zużywa kolejny bajt po wywołaniu)
     u16 returnAddress = ic.regs->PC - 1;
@@ -429,7 +727,7 @@ void opcodes::JSR(InstructionContext ic) {
 
 void opcodes::AND(InstructionContext ic) {
     // Pobierz operand z InstructionContext
-    u8 operand = ic.get<u8>();
+    u8 operand = ic.getValueFromAddress();
 
     // Wykonaj operację bitowego AND z akumulatorem
     ic.regs->A &= operand;
@@ -440,7 +738,7 @@ void opcodes::AND(InstructionContext ic) {
 
 void opcodes::BIT(InstructionContext ic) {
     // Pobierz operand z InstructionContext
-    u8 operand = ic.get<u8>();
+    u8 operand = ic.getValueFromAddress();
 
     // Testuj, czy AND między A i operandem daje 0 (ustawienie flagi Z)
     ic.setStatus(Zero, (ic.regs->A & operand) == 0);
@@ -454,7 +752,7 @@ void opcodes::BIT(InstructionContext ic) {
 
 void opcodes::ROL(InstructionContext ic) {
     // Pobierz operand
-    u8 operand = ic.get<u8>();
+    u8 operand = ic.getValueFromAddress();
 
     // Przechowaj poprzednią wartość Carry
     bool carryIn = ic.getStatus(StatusFlag::Carry);
@@ -464,7 +762,7 @@ void opcodes::ROL(InstructionContext ic) {
 
     // Zapisz wynik
     if (ic.mode != AddressingMode::Accumulator) {
-        ic.write(ic.get<u8>(), static_cast<u8>(result));
+        ic.write(ic.value, static_cast<u8>(result));
     } else {
         ic.regs->A = static_cast<u8>(result);
     }
@@ -488,10 +786,10 @@ void opcodes::PLP(InstructionContext ic) {
 void opcodes::BMI(InstructionContext ic) {
     if (ic.getStatus(Negative)) {
         // Wartość przesunięcia adresu
-        u8 offset = ic.get<u8>();
+        i8 offset = static_cast<i8>(ic.getValueFromAddress());
 
         // Wylicz nowy adres
-        u16 newPC = ic.regs->PC + static_cast<i8>(offset);
+        u16 newPC = ic.regs->PC + offset;
 
         // Zaktualizuj licznik programu
         ic.regs->PC = newPC;
@@ -517,7 +815,7 @@ void opcodes::RTI(InstructionContext ic) {
 
 void opcodes::EOR(InstructionContext ic) {
     // Pobierz operand z kontekstu
-    u8 operand = ic.get<u8>();
+    u8 operand = ic.getValueFromAddress();
 
     // Wykonaj operację XOR
     ic.regs->A ^= operand;
@@ -528,7 +826,7 @@ void opcodes::EOR(InstructionContext ic) {
 
 void opcodes::LSR(InstructionContext ic) {
     // Pobierz wartość operandu
-    u8 operand = ic.get<u8>();
+    u8 operand = ic.getValueFromAddress();
 
     // Ustaw flagę Carry na podstawie najmłodszego bitu
     bool carry = operand & Bit0;
@@ -542,7 +840,7 @@ void opcodes::LSR(InstructionContext ic) {
         ic.regs->A = result;
     } else {
         // Zapisz wynik z powrotem do pamięci, jeśli operand był w pamięci
-        ic.write(ic.get<u8>(), result);
+        ic.write(ic.value, result);
     }
 
     // Ustaw flagi Zero (Z) i Negative (N) na podstawie wyniku
@@ -557,7 +855,7 @@ void opcodes::PHA(InstructionContext ic) {
 
 void opcodes::JMP(InstructionContext ic) {
     // Pobierz adres docelowy z InstructionContext
-    u16 targetAddress = ic.get<u16>();
+    u16 targetAddress = ic.value;
 
     // Ustaw licznik programu na adres docelowy
     ic.regs->PC = targetAddress;
@@ -566,7 +864,7 @@ void opcodes::JMP(InstructionContext ic) {
 void opcodes::BVC(InstructionContext ic) {
     if (!ic.getStatus(StatusFlag::Overflow)) {
         // Pobierz przesunięcie jako wartość ze znakiem (s8)
-        i8 offset = static_cast<i8>(ic.get<u8>());
+        i8 offset = static_cast<i8>(ic.getValueFromAddress());
 
         // Oblicz nowy adres na podstawie offsetu
         u16 newAddress = ic.regs->PC + offset;
@@ -590,7 +888,7 @@ void opcodes::RTS(InstructionContext ic) {
 }
 
 void opcodes::ADC(InstructionContext ic) {
-    u8 operand = ic.get<u8>();
+    u8 operand = ic.getValueFromAddress();
 
     // Pobierz wartość akumulatora (A) i flagi Carry (C)
     u8 accumulator = ic.regs->A;
@@ -620,7 +918,7 @@ void opcodes::PLA(InstructionContext ic) {
 
 void opcodes::ROR(InstructionContext ic) {
     // Pobierz operand (jeśli dotyczy)
-    u8 operand = ic.get<u8>();
+    u8 operand = ic.getValueFromAddress();
 
     // Pobierz wartość rejestru A
     u8 accumulator = ic.regs->A;
@@ -651,7 +949,7 @@ void opcodes::BVS(InstructionContext ic) {
         // Oblicz adres skoku
         // W trybie bezpośrednim bierzemy wartość z 'value', która zawiera przesunięcie skoku
         // Adres skoku to bieżący PC + przesunięcie (relatywne)
-        i8 offset = static_cast<i8>(ic.get<u8>()); // Pobierz offset skoku (może być dodatni lub ujemny)
+        i8 offset = static_cast<i8>(ic.getValueFromAddress()); // Pobierz offset skoku (może być dodatni lub ujemny)
         u16 targetAddress = ic.regs->PC + offset;
 
         // Zaktualizuj PC na nowy adres
@@ -665,22 +963,23 @@ void opcodes::SEI(InstructionContext ic) {
 
 void opcodes::STA(InstructionContext ic) {
     // Pobierz wartość adresu, gdzie należy zapisać zawartość akumulatora
-    u16 address = ic.get<u16>(); // Adres jest przechowywany w value, może to być u16
+    u8 address = ic.getValueFromAddress(); // Adres jest przechowywany w value, może to być u16
 
-    // Zapisz wartość akumulatora do pamięci
+        // Zapisz wartość akumulatora do pamięci
     ic.write(address, ic.regs->A);
 }
 
 void opcodes::STY(InstructionContext ic) {
     // Pobierz wartość adresu, pod który należy zapisać zawartość rejestru Y
-    u16 address = ic.get<u16>(); // Adres jest przechowywany w value
+    //u16 address = ic.get<u16>(); // Adres jest przechowywany w value
+    u16 addr = ic.value;
 
     // Zapisz wartość rejestru Y do pamięci
-    ic.write(address, ic.regs->Y);
+    ic.write(addr, ic.regs->Y);
 }
 
 void opcodes::STX(InstructionContext ic) {
-    u16 address = ic.get<u16>(); // Adres jest przechowywany w value
+    u16 address = ic.value; // Adres jest przechowywany w value
 
     // Zapisz wartość rejestru Y do pamięci
     ic.write(address, ic.regs->X);
@@ -698,7 +997,7 @@ void opcodes::TXA(InstructionContext ic) {
 
 void opcodes::BCC(InstructionContext ic) {
     if (!ic.getStatus(Carry)) {
-        ic.regs->PC += static_cast<i8>(ic.get<u8>()); // Przesunięcie jest w trybie relatywnym
+        ic.regs->PC += static_cast<i8>(ic.getValueFromAddress()); // Przesunięcie jest w trybie relatywnym
     }
 }
 
@@ -713,7 +1012,7 @@ void opcodes::TXS(InstructionContext ic) {
 
 void opcodes::LDY(InstructionContext ic) {
     // Pobierz wartość z pamięci lub natychmiastową
-    u8 value = ic.get<u8>();
+    u8 value = ic.getValueFromAddress();
 
     // Załaduj wartość do rejestru Y
     ic.regs->Y = value;
@@ -724,7 +1023,7 @@ void opcodes::LDY(InstructionContext ic) {
 
 void opcodes::LDA(InstructionContext ic) {
     // Pobierz wartość z pamięci lub natychmiastową
-    u8 value = ic.get<u8>();
+    u8 value = ic.getValueFromAddress();
 
     // Załaduj wartość do akumulatora A
     ic.regs->A = value;
@@ -735,7 +1034,7 @@ void opcodes::LDA(InstructionContext ic) {
 
 void opcodes::LDX(InstructionContext ic) {
     // Pobierz wartość z pamięci lub natychmiastową
-    u8 value = ic.get<u8>();
+    u8 value = ic.getValueFromAddress();
 
     // Załaduj wartość do rejestru X
     ic.regs->X = value;
@@ -757,7 +1056,7 @@ void opcodes::TAX(InstructionContext ic) {
 void opcodes::BCS(InstructionContext ic) {
     if (ic.getStatus(StatusFlag::Carry)) {
         // Pobierz offset (operand jest w formacie 2's complement)
-        i8 offset = static_cast<i8>(ic.get<u8>());
+        const i8 offset = static_cast<i8>(ic.getValueFromAddress());
 
         // Oblicz nowy PC (uwzględniając offset)
         ic.regs->PC += offset;
@@ -775,7 +1074,7 @@ void opcodes::TSX(InstructionContext ic) {
 
 void opcodes::CPY(InstructionContext ic) {
     // Pobierz operand
-    u8 operand = ic.get<u8>();
+    u8 operand = ic.getValueFromAddress();
 
     // Wykonaj operację porównania
     u8 Y = ic.regs->Y;
@@ -793,7 +1092,7 @@ void opcodes::CPY(InstructionContext ic) {
 
 void opcodes::CMP(InstructionContext ic) {
     // Pobierz operand
-    u8 operand = ic.get<u8>();
+    u8 operand = ic.getValueFromAddress();
 
     // Wykonaj operację porównania
     u8 A = ic.regs->A;
@@ -811,7 +1110,7 @@ void opcodes::CMP(InstructionContext ic) {
 
 void opcodes::DEC(InstructionContext ic) {
     // Odczytaj wartość z pamięci pod wskazanym adresem
-    u16 address = ic.get<u16>(); // Adres do modyfikacji
+    u16 address = ic.value; // Adres do modyfikacji
     u8 value = ic.read(address);
 
     // Zmniejsz wartość o 1
@@ -825,8 +1124,8 @@ void opcodes::DEC(InstructionContext ic) {
 
 void opcodes::CLB(InstructionContext ic) {
     // Pobierz adres i bit do wyczyszczenia
-    u16 address = ic.get<u16>(); // Adres pamięci
-    u8 bitToClear = ic.get<u8>(); // Numer bitu (0-7)
+    u16 address = ic.value; // Adres pamięci
+    u8 bitToClear = ic.value; // Numer bitu (0-7)
 
     // Odczytaj wartość z pamięci
     u8 value = ic.read(address);
@@ -855,7 +1154,7 @@ void opcodes::DEX(InstructionContext ic) {
 }
 
 void opcodes::CPX(InstructionContext ic) {
-    u8 operand = ic.get<u8>(); // Pobierz wartość, z którą porównujemy
+    u8 operand = ic.getValueFromAddress(); // Pobierz wartość, z którą porównujemy
 
     // Porównanie X z operandem
     u8 result = ic.regs->X - operand;
@@ -884,7 +1183,7 @@ void opcodes::CPX(InstructionContext ic) {
 }
 
 void opcodes::SBC(InstructionContext ic) {
-    u8 operand = ic.get<u8>();  // Pobierz operand (wartość z pamięci)
+    u8 operand = ic.getValueFromAddress();  // Pobierz operand (wartość z pamięci)
 
     // Uwzględnienie flagi Carry: jeżeli Carry = 1, odejmujemy 0, w przeciwnym razie 1
     u8 carryAdjustment = ic.getStatus(StatusFlag::Carry) ? 0 : 1;
@@ -931,7 +1230,7 @@ void opcodes::JNX(InstructionContext ic) {
 void opcodes::BEQ(InstructionContext ic) {
     if (ic.getStatus(StatusFlag::Zero)) {
         // Jeśli tak, wykonaj skok do adresu zawartego w operandzie
-        u16 targetAddress = ic.regs->PC + ic.get<u8>(); // Operand to offset od obecnego PC
+        u16 targetAddress = ic.regs->PC + static_cast<i8>(ic.getValueFromAddress()); // Operand to offset od obecnego PC
 
         // Ustaw PC na docelowy adres
         ic.regs->PC = targetAddress;
@@ -944,13 +1243,15 @@ void opcodes::SED(InstructionContext ic) {
 
 void opcodes::INC(InstructionContext ic) {
     // Odczytujemy operand (wartość, którą chcemy inkrementować)
-    u8 operand = ic.read(ic.get<u16>());  // Odczytujemy wartość z pamięci pod adresem zawartym w value
+    u16 addr = ic.value;
+
+    u8 operand = ic.read(addr);  // Odczytujemy wartość z pamięci pod adresem zawartym w value
 
     // Zwiększ wartość o 1
     operand++;
 
     // Zapisz wynik z powrotem do pamięci
-    ic.write(ic.get<u16>(), operand);
+    ic.write(addr, operand);
 
     // Ustaw odpowiednie flagi statusu (Zero, Negative)
     setZN(ic, operand);
@@ -972,7 +1273,7 @@ void opcodes::BNE(InstructionContext ic) {
         // to wykonaj skok (Branch). Nowy adres skoku jest zawarty w ic.value.
 
         // Zaktualizuj program counter (PC), wykonując skok
-        u16 branchAddress = ic.regs->PC + ic.get<u8>();
+        u16 branchAddress = ic.regs->PC + static_cast<i8>(ic.getValueFromAddress());
 
         // Wykonaj skok
         ic.regs->PC = branchAddress;

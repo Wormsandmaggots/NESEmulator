@@ -3,6 +3,8 @@
 //
 
 #include "CPU.h"
+
+#include "Opcodes.h"
 #include "Utils.h"
 
 void CPU::init() {
@@ -18,12 +20,14 @@ void CPU::init() {
 void CPU::reset() const {
     regs->A = regs->X = regs->Y = 0;
 
-    regs->PC = (*mem)[0xFFFD] << 8 | (*mem)[0xFFFC];
+    u16 hi = (*mem)[0xFFFD] << 8;
+    u16 lo = (*mem)[0xFFFC];
+
+    regs->PC =  hi | lo;
     regs->S = 0xFD;
 
     regs->resetStatus();
     regs->setStatus(InterruptDisable);
-    regs->setStatus(Zero);
     regs->setStatus(Always1);
 }
 
@@ -33,81 +37,170 @@ void CPU::cleanup() {
 }
 
 void CPU::execute(Instruction instruction) {
+    handleInterrupt();
     InstructionContext ic;
-
+    INFOLOG(opcodes::Names[instruction.opcodeAddress] +  " " + std::to_string(instruction.opcodeAddress));
     ic.mem = mem;
     ic.regs = regs;
     ic.mode = instruction.mode;
 
-    if(opcodes::u16AddressingMode(instruction.mode))
-    {
-        ic.value = getFetchedValue<u16>(instruction.mode);
-    }
-    else if(instruction.mode == AddressingMode::Implicit)
-    {
-        ic.value = null;
-    }
-    else
-    {
-        ic.value = getFetchedValue<u8>(instruction.mode);
-    }
+    regs->PC++;
+
+    ic.value = fetch(ic.mode);
 
     instruction(ic);
 }
 
-u8 CPU::fetchImmediate() const {
-    return (*mem)[regs->PC++];
+Instruction CPU::getInstruction() const {
+    return opcodes::Instructions[(*mem)[regs->PC]];
 }
 
-u8 CPU::fetchZeroPage() const {
-    const u8 address = (*mem)[regs->PC++];
-    return (*mem)[address];
+Memory * CPU::getMemory() const {
+    return mem;
 }
 
-u8 CPU::fetchZeroPageX() const {
-    const u8 address = ((*mem)[regs->PC++] + regs->X) & 0xFF;
-    return (*mem)[address];
+Registers * CPU::getRegisters() const {
+    return regs;
 }
 
-u8 CPU::fetchZeroPageY() const {
-    const u8 address = ((*mem)[regs->PC++] + regs->Y) & 0xFF;
-    return (*mem)[address];
+u16 CPU::fetchImmediate() const {
+    return regs->PC++;
 }
 
-u8 CPU::fetchAbsolute() const {
+u16 CPU::fetchZeroPage() const {
+    return (*mem)[fetchImmediate()];
+}
+
+u16 CPU::fetchZeroPageX() const {
+    return (fetchZeroPage() + regs->X) % 0x100;
+}
+
+u16 CPU::fetchZeroPageY() const {
+    return (fetchZeroPage() + regs->Y) % 0x100;
+}
+
+u16 CPU::fetchAbsolute() const {
     const u16 address = (*mem)[regs->PC++] | ((*mem)[regs->PC++] << 8);
-    return (*mem)[address];
-}
-
-u8 CPU::fetchAbsoluteX() const {
-    const u16 address = ((*mem)[regs->PC++] | ((*mem)[regs->PC++] << 8)) + regs->X;
-    return (*mem)[address];
-}
-
-u8 CPU::fetchAbsoluteY() const {
-    const u16 address = ((*mem)[regs->PC++] | ((*mem)[regs->PC++] << 8)) + regs->Y;
-    return (*mem)[address];
-}
-
-u16 CPU::fetchIndirect() const {
-    const u16 pointer = (*mem)[regs->PC++] | ((*mem)[regs->PC++] << 8);
-    const u16 address = (*mem)[pointer] | ((*mem)[(pointer & 0xFF00) | ((pointer + 1) & 0xFF)] << 8);
     return address;
 }
 
-u8 CPU::fetchIndirectIndexedX() const {
-    const u8 pointer = ((*mem)[regs->PC++] + regs->X) & 0xFF;
-    const u16 address = (*mem)[pointer] | ((*mem)[(pointer + 1) & 0xFF] << 8);
-    return (*mem)[address];
+u16 CPU::fetchAbsoluteX() const {
+    const u16 address = (fetchAbsolute() + regs->X) % 0x100;
+    return address;
 }
 
-u8 CPU::fetchIndirectIndexedY() const {
-    const u8 pointer = (*mem)[regs->PC++];
-    const u16 address = ((*mem)[pointer] | ((*mem)[(pointer + 1) & 0xFF] << 8)) + regs->Y;
-    return (*mem)[address];
+u16 CPU::fetchAbsoluteY() const {
+    const u16 address = (fetchAbsolute() + regs->Y) %  0x100;
+    return address;
+}
+
+u16 CPU::fetchIndirect() const {
+    const u8 pointer = (*mem)[regs->PC++] | ((*mem)[regs->PC++] << 8);
+    //const u16 address = (*mem)[pointer] | ((*mem)[(pointer & 0xFF00) | ((pointer + 1) & 0xFF)] << 8);
+    const u16 address = opcodes::mergeToU16(pointer, (pointer + 1) % 0x100);
+    return address;
+}
+
+u16 CPU::fetchIndirectIndexedX() const {
+    // const u8 pointer = ((*mem)[regs->PC++] + regs->X) & 0xFF;
+    // const u16 address = (*mem)[pointer] | ((*mem)[(pointer + 1) & 0xFF] << 8);
+    // return address;
+    return (fetchIndirect() + regs->X) % 0x100;
+}
+
+u16 CPU::fetchIndirectIndexedY() const {
+    // const u8 pointer = (*mem)[regs->PC++];
+    // const u16 address = ((*mem)[pointer] | ((*mem)[(pointer + 1) & 0xFF] << 8)) + regs->Y;
+    // return (*mem)[address];
+    return (fetchIndirect() + regs->Y) % 0x100;
+}
+
+u16 CPU::fetchAccumulator() const {
+    return regs->A;
+}
+
+u16 CPU::fetchImplicit() const {
+    return -1;
 }
 
 u16 CPU::fetchRelative() const {
-    const i8 offset = static_cast<i8>(mem->read(regs->PC++));
-    return regs->PC + offset;
+    //const i8 offset = static_cast<i8>(mem->read(regs->PC++));
+    return regs->PC++;
+}
+
+void CPU::handleInterrupt() {
+    if (interrupt == NMI) {
+        interrupt = None;;
+        // Zapisz stan procesora
+        pushStatus();
+        pushAddress(regs->PC);
+        regs->PC = mem->read(0xFFFA) | (mem->read(0xFFFB) << 8); // Skok do wektora NMI
+        // Zresetuj flagę przerwań
+        regs->setStatus(InterruptDisable);
+        return;
+    }
+
+    // Sprawdź, czy jest aktywne przerwanie IRQ
+    if (interrupt == IRQ && !regs->getStatus(InterruptDisable)) { // Flaga Interrupt Disable (I) = 0
+        interrupt = None;
+        // Zapisz stan procesora
+        pushStatus();
+        pushAddress(regs->PC);
+        regs->PC = mem->read(0xFFFE) | (mem->read(0xFFFF) << 8); // Skok do wektora IRQ
+        // Zresetuj flagę przerwań
+        regs->setStatus(InterruptDisable);
+        return;
+    }
+}
+
+void CPU::pushStatus() {
+    // Zapisz flagi statusu na stosie
+    pushByte(regs->P | (1 << 5)); // Ustawienie flagi B
+}
+
+void CPU::pushAddress(uint16_t address) {
+    // Zapisz adres (adres PC) na stosie
+    pushByte(address >> 8);  // Zapisz wyższy bajt
+    pushByte(address & 0xFF); // Zapisz niższy bajt
+}
+
+void CPU::pushByte(uint8_t byte) {
+    // Zapisz bajt na stosie (dekrementacja SP)
+    mem->write(0x0100 + regs->S, byte);
+    regs->S--;
+}
+
+u16 CPU::fetch(AddressingMode addressing_mode) const {
+    switch(addressing_mode) {
+        case AddressingMode::Implicit:
+            return fetchImplicit();
+        case AddressingMode::Absolute:
+            return fetchAbsolute();
+        case AddressingMode::Indirect:
+            return fetchIndirect();
+        case AddressingMode::Accumulator:
+            return fetchAccumulator();
+        case AddressingMode::Relative:
+            return fetchRelative();
+        case AddressingMode::Immediate:
+            return fetchImmediate();
+        case AddressingMode::ZeroPage:
+            return fetchZeroPage();
+        case AddressingMode::AbsoluteIndexedX:
+            return fetchAbsoluteX();
+        case AddressingMode::AbsoluteIndexedY:
+            return fetchAbsoluteY();
+        case AddressingMode::IndexedIndirectX:
+            return fetchIndirectIndexedX();
+        case AddressingMode::IndexedIndirectY:
+            return fetchIndirectIndexedY();
+        case AddressingMode::ZeroPageIndexedX:
+            return fetchZeroPageX();
+        case AddressingMode::ZeroPageIndexedY:
+            return fetchZeroPageY();
+        default: {
+            ERRORLOG(error::unsupportedAddressingModeWithU16);
+            return -1;
+        }
+    }
 }

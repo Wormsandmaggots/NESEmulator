@@ -8,6 +8,8 @@
 #include <variant>
 #include <vector>
 
+#include "Logger.h"
+#include "LogMessages.h"
 #include "Memory.h"
 #include "NESHelpers.h"
 
@@ -19,7 +21,8 @@ struct InstructionContext {
     Registers* regs = null;
     Memory* mem = null;
     AddressingMode mode = AddressingMode::Undefined;
-    std::variant<u8, u16, void*> value;
+    //std::variant<u8, i8, u16, void*> value;
+    u16 value = 0;
 
     void write(const u16 addr,const u8 data) const {
         mem->write(addr, data);
@@ -52,10 +55,39 @@ struct InstructionContext {
         return regs->getStatus(flag);
     }
 
-    template<typename T>
-    T get() {
-        return std::get<T>(value);
+    u8 getValueFromAddress() const{ return read(value); }
+
+    void pushByte(uint8_t byte) const {
+        // Zapisz bajt na stosie (dekrementacja SP)
+        mem->write(0x0100 + regs->S, byte);
+        regs->S--;
     }
+
+    void pushStatus() const {
+        // Zapisz flagi statusu na stosie
+        pushByte(regs->P | (1 << 5)); // Ustawienie flagi B
+    }
+
+    void pushAddress(uint16_t address) const {
+        // Zapisz adres (adres PC) na stosie
+        pushByte(address >> 8);  // Zapisz wyższy bajt
+        pushByte(address & 0xFF); // Zapisz niższy bajt
+    }
+
+    // template<typename T>
+    // T get() {
+    //     if(std::holds_alternative<T>(value)) {
+    //         return std::get<T>(value);
+    //     }
+    //
+    //     ERRORLOG(error::invalidVariantTypeGet);
+    //     return 0;
+    // }
+    //
+    // template<typename T>
+    // bool holds() {
+    //     return std::holds_alternative<T>(value);
+    // }
 };
 
 struct Instruction {
@@ -65,7 +97,9 @@ struct Instruction {
     u8 opcodeAddress = 0x0;
 
     bool isIllegal() const { return cycles < 0 && mode != AddressingMode::Undefined; }
-    void operator()(InstructionContext ic) const { opcode(ic); }
+    void operator()(InstructionContext ic) const {
+        opcode(ic);
+    }
 
     i16 getCycles(InstructionContext ic) const
     {
@@ -77,8 +111,8 @@ struct Instruction {
         if(cycles <= illegalCycles)
             return cycles;
 
-        if(std::holds_alternative<u16>(ic.value) && (mode == AbsoluteIndexedX || mode == AbsoluteIndexedY)) {
-            const u16 baseAddress = ic.get<u16>();
+        if(mode == AbsoluteIndexedX || mode == AbsoluteIndexedY) {
+            const u16 baseAddress = ic.value;
             const u8 offset = mode == AbsoluteIndexedX ? ic.regs->X : ic.regs->Y;
 
             if (hasPageCrossed(baseAddress, offset)) {
@@ -89,7 +123,7 @@ struct Instruction {
         if(isBranchInstruction(opcodeAddress) && branchConditionMet(opcodeAddress, *ic.regs)) {
             currentCycles+=1;
 
-            if(std::holds_alternative<u8>(ic.value) && hasPageCrossed(ic.regs->PC, ic.get<u8>())) {
+            if(hasPageCrossed(ic.regs->PC, ic.getValueFromAddress())) {
                 currentCycles+=1;
             }
         }
@@ -181,6 +215,7 @@ namespace opcodes {
     void Unimplemented(InstructionContext ic);
 
     inline std::vector<Instruction> Instructions;
+    inline std::vector<std::string> Names;
 }
 
 #endif //OPCODES_H

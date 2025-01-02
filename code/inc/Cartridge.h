@@ -9,6 +9,8 @@
 
 #include "Types.h"
 
+class Memory;
+
 struct FileHeader
 {
     const char magic[4]; // "NES" + 0x1A
@@ -37,6 +39,7 @@ public:
     bool load();
 
     const NESFile* getNESFile() const;
+    void loadToMemory(Memory* mem) const;
 
 private:
     NESFile* nesFile = null;
