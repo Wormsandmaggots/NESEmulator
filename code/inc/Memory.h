@@ -30,6 +30,9 @@ public:
     void init();
 
     u8 read(u16 addr) const;
+
+    u8& getReference(u16 addr);
+
     void write(u16 addr, u8 data);
     void write(u16 startAddr, u8* dataStart, u32 amount);
 

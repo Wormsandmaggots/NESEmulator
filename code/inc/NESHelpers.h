@@ -9,6 +9,7 @@
 #include <sstream>
 #include <string>
 
+#include "Memory.h"
 #include "Types.h"
 
 enum Bit : u8 {
@@ -20,6 +21,12 @@ enum Bit : u8 {
     Bit5 = 0b00100000,
     Bit6 = 0b01000000,
     Bit7 = 0b10000000,
+};
+
+struct Color {
+    u8 r = 0;
+    u8 g = 0;
+    u8 b = 0;
 };
 
 namespace cpu {
@@ -124,10 +131,25 @@ namespace opcodes {
 namespace ppu {
     struct Registers {
         //u8 registers[8];       // Rejestry PPU
-        u8 V;                 // Rejestr adresu (current VRAM address)
-        u16 T;                 // Rejestr adresu tymczasowego
-        u8 X;                  // Przesunięcie przesuwu poziomego
-        u8 W;                  // Flaga przełączania adresu
+        u8 V = 0;                 // Rejestr adresu (current VRAM address)
+        u16 T = 0;                 // Rejestr adresu tymczasowego
+        u8 X = 0;                  // Przesunięcie przesuwu poziomego
+        u8 W = 0;                  // Flaga przełączania adresu
+
+        u8* PPUControl = null;
+        u8* PPUMask = null;
+        u8* PPUStatus = null;
+        u8* OAMAddr = null;
+        u8* OAMData = null;
+        u8* PPUScroll = null;
+        u8* PPUAddr = null;
+        u8* PPUData = null;
+        u8* OAMDMA = null;
+
+        int getVerticalScroll() const {
+            // T = 0yyy NNYY YYYX XXXX
+            return ((T >> 12) & 0b111) * 8 + ((T >> 5) & 0b111111);
+        }
     };
 }
 

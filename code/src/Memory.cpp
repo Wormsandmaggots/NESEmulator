@@ -26,8 +26,17 @@ void Memory::init() {
 
 u8 Memory::read(u16 addr) const{
     if(addr >= maxSize) {
-        ERRORLOG(error::memoryOutOfBonds);
+        ERRORLOG(error::memoryOutOfBounds);
         return 0;
+    }
+
+    return data[addr];
+}
+
+u8& Memory::getReference(uint16_t addr) {
+    if(addr >= maxSize) {
+        ERRORLOG(error::memoryOutOfBounds);
+        return data[0];
     }
 
     return data[addr];
@@ -35,7 +44,7 @@ u8 Memory::read(u16 addr) const{
 
 void Memory::write(u16 addr, u8 data) {
     if(addr >= maxSize) {
-        ERRORLOG(error::memoryOutOfBonds);
+        ERRORLOG(error::memoryOutOfBounds);
         return;
     }
 
@@ -44,7 +53,7 @@ void Memory::write(u16 addr, u8 data) {
 
 void Memory::write(u16 startAddr, u8 *dataStart, u32 amount) {
     if(startAddr + amount > maxSize) {
-        ERRORLOG(error::memoryOutOfBonds);
+        ERRORLOG(error::memoryOutOfBounds);
         return;
     }
 

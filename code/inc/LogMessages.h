@@ -6,7 +6,7 @@
 #define LOGMESSAGES_H
 
 namespace error {
-    constexpr const char* memoryOutOfBonds = "Out of bonds memory";
+    constexpr const char* memoryOutOfBounds = "Out of bounds memory";
     constexpr const char* unsupportedTemplateType = "Unsupported template type";
     constexpr const char* unsupportedAddressingModeWithU16 = "Invalid address mode with U16";
     constexpr const char* unsupportedAddressingModeWithU8 = "Invalid address mode with U8";

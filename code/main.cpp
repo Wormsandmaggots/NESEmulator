@@ -5,10 +5,9 @@
 #include "CPU.h"
 #include "Logger.h"
 #include "Opcodes.h"
+#include "PPU.h"
 
 using namespace std;
-
-
 
 int main(int argc, char* argv[])
 {
@@ -20,6 +19,8 @@ int main(int argc, char* argv[])
     cartridge.load();
     cartridge.loadToMemory(cpu.getMemory());
     cpu.reset();
+
+    PPU ppu(cpu.getMemory());
 
     if (SDL_Init(SDL_INIT_VIDEO) != 0)
     {
@@ -39,6 +40,14 @@ int main(int argc, char* argv[])
     SDL_SetRenderDrawColor(renderer, 30, 30, 30, SDL_ALPHA_OPAQUE);
     SDL_RenderClear(renderer);
     SDL_RenderPresent(renderer);
+
+    // Stwórz teksturę dla bufora ramki
+    SDL_Texture* texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STREAMING,
+                                              resolution.x, resolution.y);
+    if (!texture) {
+        SDL_Log("Unable to create texture! SDL_Error: %s", SDL_GetError());
+        return -1;
+    }
 
     bool isOn = true;
     while (isOn)
@@ -68,6 +77,12 @@ int main(int argc, char* argv[])
         }
 
         cpu.execute(cpu.getInstruction());
+        ppu.update();
+
+        SDL_UpdateTexture(texture, null, ppu.getFrameBuffer().data(), resolution.x * 3);
+        SDL_RenderClear(renderer);
+        SDL_RenderCopy(renderer, texture, null, null);
+        SDL_RenderPresent(renderer);
 
         SDL_Delay(1);
     }
