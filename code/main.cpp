@@ -79,7 +79,7 @@ int main(int argc, char* argv[])
         cpu.execute(cpu.getInstruction());
         ppu.update();
 
-        SDL_UpdateTexture(texture, null, ppu.getFrameBuffer().data(), resolution.x * 3);
+        SDL_UpdateTexture(texture, null, ppu.getFrame().data(), resolution.x * sizeof(u32));
         SDL_RenderClear(renderer);
         SDL_RenderCopy(renderer, texture, null, null);
         SDL_RenderPresent(renderer);

@@ -27,6 +27,10 @@ struct Color {
     u8 r = 0;
     u8 g = 0;
     u8 b = 0;
+
+    u32 makeu32() const {
+        return (r << 16) | (g << 8) | b;
+    }
 };
 
 namespace cpu {
@@ -129,9 +133,18 @@ namespace opcodes {
 }
 
 namespace ppu {
+
+    struct Sprite {
+        u8 y = 0;
+        u8 tileIndex = 0;
+        u8 attribute = 0;
+        u8 x = 0;
+    };
+
+    //https://www.nesdev.org/wiki/PPU_registers
     struct Registers {
         //u8 registers[8];       // Rejestry PPU
-        u8 V = 0;                 // Rejestr adresu (current VRAM address)
+        u16 V = 0;                 // Rejestr adresu (current VRAM address)
         u16 T = 0;                 // Rejestr adresu tymczasowego
         u8 X = 0;                  // Przesunięcie przesuwu poziomego
         u8 W = 0;                  // Flaga przełączania adresu
@@ -146,9 +159,93 @@ namespace ppu {
         u8* PPUData = null;
         u8* OAMDMA = null;
 
-        int getVerticalScroll() const {
-            // T = 0yyy NNYY YYYX XXXX
-            return ((T >> 12) & 0b111) * 8 + ((T >> 5) & 0b111111);
+        u8 yScroll = 0;
+        u8 latch = 0;
+        bool protect = false;
+        bool maskOAMRead = false;
+
+        bool showBackground() const {
+            return (*PPUMask) & Bit3;
+        }
+
+        bool showSprites() const {
+            return (*PPUMask) & Bit4;
+        }
+
+        u16 spritePatternTableAddress() {
+            return (*PPUControl) & Bit3 ? 0x1000 : 0x0000;
+        }
+
+        u16 backgroundPatternTableAddress() {
+            return (*PPUControl) & Bit4 ? 0x1000 : 0x0000;
+        }
+
+        u16 nametableAddress() {
+            return 0x2000 + uint16_t(*PPUControl & 0x3) * 0x400;
+        }
+
+        u8 ppuAddressIncValue() {
+            return (*PPUControl) & Bit2 ? 32 : 1;
+        }
+
+        bool vblankNmi() {
+            return (*PPUControl) & Bit7;
+        }
+
+        void setSpriteOverflow(bool val) {
+            if(val)
+                (*PPUStatus) |= Bit5;
+            else
+                (*PPUStatus) &= ~Bit5;
+        }
+
+        bool use8x16Sprites() {
+            return (*PPUControl) & Bit5;
+        }
+
+        bool sprite0Hit() {
+            return (*PPUStatus) & Bit6;
+        }
+
+        void setSprite0Hit(bool val) {
+            if(val)
+                (*PPUStatus) |= Bit6;
+            else
+                (*PPUStatus) &= ~Bit6;
+        }
+
+        void writeLatch(u8 val) {
+            if(protect) return;
+
+            latch = val;
+        }
+
+        void writePPUSCROLL(u8 val) {
+            writeLatch(val);
+
+            W = !W;
+            if (W)
+            {
+                // first write
+                T = (T & 0xffe0) | (val >> 3);
+                X = val & 0x7;
+            }
+            else
+            {
+                // second write
+                T = (T & 0xc1f) | (uint16_t(val & 0xf8) << 2) | (uint16_t(val & 0x7) << 12);
+                yScroll = val;
+            }
+
+            *PPUScroll = val;
+        }
+
+        void writePPUCTRL(u8 val) {
+            writeLatch(val);
+
+            T = (T & 0xf3ff) | ((val & 0x3) << 10);
+
+            (*PPUControl) = val;
         }
     };
 }

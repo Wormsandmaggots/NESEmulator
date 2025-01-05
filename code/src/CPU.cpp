@@ -38,6 +38,7 @@ void CPU::cleanup() {
 
 void CPU::execute(Instruction instruction) {
     handleInterrupt();
+
     InstructionContext ic;
     INFOLOG(opcodes::Names[instruction.opcodeAddress] +  " " + std::to_string(instruction.opcodeAddress));
     ic.mem = mem;
@@ -129,14 +130,15 @@ u16 CPU::fetchRelative() const {
 }
 
 void CPU::handleInterrupt() {
-    if (interrupt == NMI) {
-        interrupt = None;;
+    if (nmiEnabled() && vBlankFlag()) {
         // Zapisz stan procesora
-        pushStatus();
         pushAddress(regs->PC);
+        pushStatus(false);
         regs->PC = mem->read(0xFFFA) | (mem->read(0xFFFB) << 8); // Skok do wektora NMI
         // Zresetuj flagę przerwań
         regs->setStatus(InterruptDisable);
+        clearVBlankFlag();
+
         return;
     }
 
@@ -153,9 +155,24 @@ void CPU::handleInterrupt() {
     }
 }
 
-void CPU::pushStatus() {
+void CPU::pushStatus(bool setBreak) {
     // Zapisz flagi statusu na stosie
-    pushByte(regs->P | (1 << 5)); // Ustawienie flagi B
+    regs->setStatus(Break, setBreak);
+    pushByte(regs->P); // Ustawienie flagi B
+}
+
+bool CPU::nmiEnabled() const {
+    return (*mem)[0x2000] & Bit7;
+}
+
+bool CPU::vBlankFlag() const {
+    return (*mem)[0x2002] & Bit7;
+}
+
+void CPU::clearVBlankFlag() {
+    u8 PPUStatus = (*mem)[0x2002];
+    PPUStatus &= ~Bit7;
+    mem->write(0x2002, PPUStatus);
 }
 
 void CPU::pushAddress(uint16_t address) {

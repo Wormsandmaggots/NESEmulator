@@ -13,6 +13,7 @@
 #include "Settings.h"
 #include "Utils.h"
 #include "Memory.h"
+#include "NESHelpers.h"
 
 bool Cartridge::load() {
     nesFile = new NESFile;
@@ -33,11 +34,11 @@ bool Cartridge::load() {
         return false;
     }
 
-    nesFile->has_trainer = header.flag6 & 0x04;
+    nesFile->has_trainer = header.flag6 & Bit2;
 
     nesFile->mapper = (header.flag6 >> 4) | (header.flag7 & 0xF0);
 
-    nesFile->mirroring = header.flag6 & 0x01;
+    nesFile->mirroring = header.flag6 & Bit0;
 
     if (nesFile->has_trainer) {
         file.seekg(512, std::ios::cur);
