@@ -36,12 +36,18 @@ public:
     Memory* getMemory() const;
     Registers* getRegisters() const;
     u16 fetch(AddressingMode addressing_mode) const;
+    void step(nes_cycle_t new_count);
 
+    static void setNMI();
 
 private:
+    static bool executeNMI;
+
     Registers* regs = null;
     Memory* mem = null;
     Interrupt interrupt = None;
+
+    nes_cycle_t cycle;
 
     u16 fetchImmediate() const;
     u16 fetchZeroPage() const;

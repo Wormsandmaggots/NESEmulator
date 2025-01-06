@@ -11,6 +11,20 @@
 
 #include "Memory.h"
 #include "Types.h"
+#include <chrono>
+
+using namespace std::chrono;
+
+#define NES_CLOCK_HZ (21477272ll / 4)
+
+typedef duration<int64_t, std::ratio<1, 1>> nes_cycle_t;
+typedef duration<int64_t, std::ratio<1, 1>> nes_ppu_cycle_t;
+typedef duration<int64_t, std::ratio<3, 1>> nes_cpu_cycle_t;
+
+static nes_cycle_t ms_to_nes_cycle(double ms)
+{
+    return nes_cycle_t(int64_t(NES_CLOCK_HZ / 1000 * ms));
+}
 
 enum Bit : u8 {
     Bit0 = 0b00000001,
@@ -214,6 +228,13 @@ namespace ppu {
                 (*PPUStatus) &= ~Bit6;
         }
 
+        void setVblankFlag(bool val) {
+            if(val)
+                (*PPUStatus) |= Bit7;
+            else
+                (*PPUStatus) &= ~Bit7;
+        }
+
         void writeLatch(u8 val) {
             if(protect) return;
 
@@ -246,6 +267,25 @@ namespace ppu {
             T = (T & 0xf3ff) | ((val & 0x3) << 10);
 
             (*PPUControl) = val;
+        }
+
+        void writePPUAADDR(u8 val) {
+            writeLatch(val);
+
+            W = !W;
+            if (W)
+            {
+                // first write
+                // note that both PPUADDR(2006) and PPUSCROLL (2005) share the same _temp_ppu_addr
+                T = (T & 0x00ff) | (uint16_t(val & 0x3f) << 8);
+            }
+            else
+            {
+                // second write
+                // note that both PPUADDR(2006) and PPUSCROLL (2005) share the same _temp_ppu_addr
+                T = (T & 0xff00) | val;
+                *PPUAddr = T;
+            }
         }
     };
 }

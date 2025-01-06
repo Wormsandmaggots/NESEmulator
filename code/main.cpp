@@ -50,6 +50,11 @@ int main(int argc, char* argv[])
     }
 
     bool isOn = true;
+    u64 prev_counter = SDL_GetPerformanceCounter();
+    u64 count_per_second = SDL_GetPerformanceFrequency();
+
+    nes_cycle_t _master_cycle = nes_cycle_t(0);
+
     while (isOn)
     {
         // input handling
@@ -76,8 +81,23 @@ int main(int argc, char* argv[])
             }
         }
 
-        cpu.execute(cpu.getInstruction());
-        ppu.update();
+        u64 cur_counter = SDL_GetPerformanceCounter();
+
+        u64 delta_ticks = cur_counter - prev_counter;
+        prev_counter = cur_counter;
+        if (delta_ticks == 0)
+            delta_ticks = 1;
+
+        auto cpu_cycles = ms_to_nes_cycle((double)delta_ticks * 1000 / count_per_second);
+
+        if (cpu_cycles > nes_cycle_t(NES_CLOCK_HZ))
+            cpu_cycles = nes_cycle_t(NES_CLOCK_HZ);
+
+        for (nes_cycle_t i = nes_cycle_t(0); i < cpu_cycles; ++i) {
+            _master_cycle += nes_cycle_t(1);
+            cpu.step(_master_cycle);
+            ppu.step(_master_cycle);
+        }
 
         SDL_UpdateTexture(texture, null, ppu.getFrame().data(), resolution.x * sizeof(u32));
         SDL_RenderClear(renderer);

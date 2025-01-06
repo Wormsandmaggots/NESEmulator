@@ -7,6 +7,12 @@
 #include <cassert>
 #include <string.h>
 
+#include "CPU.h"
+
+#define PPU_SCANLINE_CYCLE nes_ppu_cycle_t(341)
+#define PPU_SCANLINE_COUNT 262
+
+
 namespace ppu {
     constexpr u16 PPUCTRLAddress = 0x2000;
     constexpr u16 PPUMASKAddress = 0x2001;
@@ -202,37 +208,91 @@ void PPU::render() {
         x = 0;
     }
 
-    if(scanline <= 239) {
-        tilesPipeline();
-        spritesPipeline();
-    }
-    else if(scanline == 240) {
+    while(scanline != 341) {
+        //step();
 
-    }
-    else if(scanline == 241) {
-
-    }
-    else if(scanline < 261) {
-        if(scanline == 241 && cycle == 1) {
+        if(scanline <= 239) {
+            tilesPipeline();
+            spritesPipeline();
+        }
+        else if(scanline == 240) {
 
         }
+        else if(scanline < 261) {
+            if(scanline == 241 && cycle == 1) {
+                regs.setVblankFlag(true);
 
-        if (scanline == 260 && cycle > 329) {
-
-        }
-    }
-    else {
-        if(scanline == 261) {
-            if(cycle == 0) {
-
+                if(regs.vblankNmi())
+                    CPU::setNMI();
             }
-            else if(cycle == 1) {
 
+            if (scanline == 260 && cycle > 329) {
+                regs.setVblankFlag(false);
             }
         }
+        else {
+            if(scanline == 261) {
+                if(cycle == 0) {
+                    regs.setVblankFlag(true);
 
-        if(cycle == 340) {
-            
+                    if (regs.showBackground() || regs.showSprites())
+                    {
+                        *regs.PPUAddr = regs.T;
+                    }
+                }
+                else if(cycle == 1) {
+                    regs.setSprite0Hit(false);
+                }
+            }
+
+            if(cycle == 340 && frameCount % 2 == 1) {
+
+            }
+        }
+    }
+}
+
+void PPU::step(nes_cycle_t count) {
+    while(_master_cycle < count) {
+        step(nes_ppu_cycle_t(1));
+
+        if(scanline <= 239) {
+            tilesPipeline();
+            spritesPipeline();
+        }
+        else if(scanline == 240) {
+
+        }
+        else if(scanline < 261) {
+            if(scanline == 241 && _scanline_cycle == nes_ppu_cycle_t(1)) {
+                regs.setVblankFlag(true);
+
+                if(regs.vblankNmi())
+                    CPU::setNMI();
+            }
+
+            if (scanline == 260 && _scanline_cycle > nes_ppu_cycle_t(341 - 12)) {
+                regs.setVblankFlag(false);
+            }
+        }
+        else {
+            if(scanline == 261) {
+                if(_scanline_cycle == nes_ppu_cycle_t(0)) {
+                    regs.setVblankFlag(true);
+
+                    if (regs.showBackground() || regs.showSprites())
+                    {
+                        *regs.PPUAddr = regs.T;
+                    }
+                }
+                else if(_scanline_cycle == nes_ppu_cycle_t(1)) {
+                    regs.setSprite0Hit(false);
+                }
+            }
+
+            if(_scanline_cycle == nes_ppu_cycle_t(340) && frameCount % 2 == 1) {
+                step_ppu(nes_ppu_cycle_t(1));
+            }
         }
     }
 }
@@ -241,14 +301,14 @@ void PPU::tilesPipeline() {
     // No need to fetch anything if rendering is off
     if (!regs.showBackground()) return;
 
-    if (cycle == 0)
+    if (_scanline_cycle == nes_ppu_cycle_t(0))
     {
     }
-    else if (cycle < 257)
+    else if (_scanline_cycle == nes_ppu_cycle_t(256))
     {
         fetchTile();
 
-        if (cycle == 256)
+        if (_scanline_cycle == nes_ppu_cycle_t(256))
         {
             if ((*regs.PPUAddr & 0x7000) != 0x7000)
             {
@@ -276,9 +336,9 @@ void PPU::tilesPipeline() {
             }
         }
     }
-    else if (cycle < 321)
+    else if (_scanline_cycle < nes_ppu_cycle_t(321))
     {
-        if (cycle == 257)
+        if (_scanline_cycle == nes_ppu_cycle_t(257))
         {
             // Reset horizontal position
             // This includes resetting horizontal name table (2000~2400, 2800~2c00)
@@ -290,7 +350,7 @@ void PPU::tilesPipeline() {
 
         // fetch tile data for sprites on the next scanline
     }
-    else if (cycle < 337)
+    else if (_scanline_cycle < nes_ppu_cycle_t(337))
     {
         // first two tiles for next scanline
         fetchTile();
@@ -310,7 +370,7 @@ void PPU::spritesPipeline() {
         return;
 
     // @TODO - Sprite 0 hit testing
-    if (cycle == 0)
+    if (_scanline_cycle == nes_ppu_cycle_t(0))
     {
         lastSpriteID = 0;
         hasSprite0 = false;
@@ -318,7 +378,7 @@ void PPU::spritesPipeline() {
         //_sprite_overflow = false;
         regs.setSpriteOverflow(false);
     }
-    else if (cycle < 65)
+    else if (_scanline_cycle < nes_ppu_cycle_t(65))
     {
         // initialize secondary OAM (_sprite_buf)
         // we've already done this earlier and the side effect isn't observable anyway
@@ -326,14 +386,14 @@ void PPU::spritesPipeline() {
         // NOTE: We can set this conditionaly but it's simply faster always to set it
         regs.maskOAMRead = true;
     }
-    else if (cycle < 257)
+    else if (_scanline_cycle < nes_ppu_cycle_t(257))
     {
         // fetch tile data for sprites on the next scanline
 
         // NOTE: We can set this conditionaly but it's simply faster always to set it
         regs.maskOAMRead = false;
 
-        u8 sprite_cycle = (uint8_t) (cycle - 65);
+        u8 sprite_cycle = (uint8_t) (_scanline_cycle.count() - 65);
         u8 sprite_id = sprite_cycle / 2;
 
         // Cycle 65-256 has more than enough cycles to read all 64 sprites - but it appears that this
@@ -343,7 +403,7 @@ void PPU::spritesPipeline() {
         if (sprite_id >= 64)
             return;
 
-        if ((cycle % 2) == 0)
+        if ((_scanline_cycle.count() % 2) == 0)
         {
             // even cycle - write to secondary OAM
             // if in range
@@ -365,9 +425,9 @@ void PPU::spritesPipeline() {
             lastSpriteY = getSprite(sprite_id)->y;
         }
     }
-    else if (cycle < 321)
+    else if (_scanline_cycle < nes_ppu_cycle_t(321))
     {
-        uint8_t sprite_cycle = (uint8_t) (cycle - 257);
+        uint8_t sprite_cycle = (uint8_t) (_scanline_cycle.count() - 257);
         uint8_t sprite_id = sprite_cycle / 8;
         if (sprite_cycle % 8 == 4)
         {
@@ -382,19 +442,19 @@ void PPU::spritesPipeline() {
 }
 
 void PPU::fetchTile() {
-    u16 scanline_render_cycle = 0;
+    auto scanline_render_cycle = nes_ppu_cycle_t(0);
     u16 cur_scanline = scanline;
 
-    if (scanline > 320)
+    if (_scanline_cycle > nes_ppu_cycle_t(320))
     {
         // this is prefetch cycle 321~336 for next scanline
-        scanline_render_cycle = scanline - 321;
+        scanline_render_cycle = _scanline_cycle - nes_ppu_cycle_t(321);
         cur_scanline = (cur_scanline + 1) % resolution.y;
     }
     else
     {
         // account for the prefetch happened in earlier scanline
-        scanline_render_cycle = (scanline + 15);
+        scanline_render_cycle = (_scanline_cycle - nes_ppu_cycle_t(1) + nes_ppu_cycle_t(16));
     }
 
     auto data_access_cycle = scanline_render_cycle % 8;
@@ -402,14 +462,14 @@ void PPU::fetchTile() {
     // which of 8 rows witin a tile
     uint8_t tile_row_index = (cur_scanline + regs.yScroll) % 8;
 
-    if (data_access_cycle == 0)
+    if (data_access_cycle == nes_ppu_cycle_t(0))
     {
         // fetch nametable byte for current 8-pixel-tile
         // http://wiki.nesdev.com/w/index.php/PPU_nametables
         uint16_t name_tbl_addr = (*regs.PPUAddr & 0xfff) | 0x2000;
         tileIndex = (*sharedMemory)[name_tbl_addr];
     }
-    else if (data_access_cycle == 2)
+    else if (data_access_cycle == nes_ppu_cycle_t(2))
     {
         // fetch attribute table byte
         // each attribute pixel is 4 quadrant of 2x2 tile (so total of 8x8) tile
@@ -428,7 +488,7 @@ void PPU::fetchTile() {
         uint8_t color_bit32 = (color_byte & (0x3 << (_quadrant_id * 2))) >> (_quadrant_id * 2);
         tilePaletteBit32 = color_bit32 << 2;
     }
-    else if (data_access_cycle == 4)
+    else if (data_access_cycle == nes_ppu_cycle_t(4))
     {
         // Pattern table is area of memory define all the tiles make up background and sprites.
         // Think it as "lego blocks" that you can build up your background and sprites which
@@ -437,7 +497,7 @@ void PPU::fetchTile() {
         // http://wiki.nesdev.com/w/index.php/PPU_pattern_tables
         bitPlane0 = read_pattern_table_column(/* sprite = */false, tileIndex, /* bitplane = */ 0, tile_row_index);
     }
-    else if (data_access_cycle == 6)
+    else if (data_access_cycle == nes_ppu_cycle_t(6))
     {
         // fetch tilebitmap high
         // add one more cycle for memory access to skip directly to next access
@@ -448,7 +508,7 @@ void PPU::fetchTile() {
         int start_bit = 7;
         int end_bit = 0;
 
-        int tile = (int)(scanline_render_cycle - /* current_access_cycle */ 6) / 8;
+        int tile = (int)(scanline_render_cycle.count() - /* current_access_cycle */ 6) / 8;
         if (regs.X > 0)
         {
             if (tile == 0)
@@ -616,4 +676,28 @@ u8 PPU::get_palette_color(bool is_background, uint8_t palette_index_4_bit) {
 
 Sprite* PPU::getSprite(uint8_t sprite_id) {
     return (Sprite *)oam[sprite_id];
+}
+
+void PPU::step_ppu(nes_ppu_cycle_t count) {
+    _master_cycle += nes_ppu_cycle_t(count);
+    _scanline_cycle += nes_ppu_cycle_t(count);
+
+    if (_scanline_cycle >= PPU_SCANLINE_CYCLE)
+    {
+        _scanline_cycle %= PPU_SCANLINE_CYCLE;
+        scanline++;
+        if (scanline >= PPU_SCANLINE_COUNT)
+        {
+            scanline %= PPU_SCANLINE_COUNT;
+            swap_buffer();
+            frameCount++;
+        }
+    }
+}
+
+void PPU::swap_buffer() {
+    if (entireFrameBuffer == frameBuffer1)
+        entireFrameBuffer = frameBuffer2;
+    else
+        entireFrameBuffer = frameBuffer1;
 }

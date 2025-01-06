@@ -7,6 +7,8 @@
 #include "Opcodes.h"
 #include "Utils.h"
 
+bool CPU::executeNMI = false;
+
 void CPU::init() {
 
     initOpcodes();
@@ -14,6 +16,7 @@ void CPU::init() {
     regs = new Registers;
     mem = new Memory(ramSize);
     mem->init();
+    cycle = nes_cycle_t(0);
     reset();
 }
 
@@ -50,6 +53,8 @@ void CPU::execute(Instruction instruction) {
     ic.value = fetch(ic.mode);
 
     instruction(ic);
+
+    cycle += nes_cpu_cycle_t(instruction.cycles);
 }
 
 Instruction CPU::getInstruction() const {
@@ -130,7 +135,7 @@ u16 CPU::fetchRelative() const {
 }
 
 void CPU::handleInterrupt() {
-    if (nmiEnabled() && vBlankFlag()) {
+    if (executeNMI) {
         // Zapisz stan procesora
         pushAddress(regs->PC);
         pushStatus(false);
@@ -220,4 +225,14 @@ u16 CPU::fetch(AddressingMode addressing_mode) const {
             return -1;
         }
     }
+}
+
+void CPU::step(nes_cycle_t new_count) {
+    while(cycle < new_count) {
+        execute(getInstruction());
+    }
+}
+
+void CPU::setNMI() {
+    executeNMI = true;
 }

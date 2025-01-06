@@ -22,6 +22,10 @@ public:
 
     void render();
 
+    void step(nes_cycle_t count);
+
+    void step_ppu(nes_ppu_cycle_t count);
+
     std::vector<u8> getFrameBuffer() const;
     std::vector<u32> getFrame() const;
 private:
@@ -37,6 +41,8 @@ private:
     u16 scanline = 0;
     u16 cycle = 0;
 
+    u16 mainCycle = 0;
+
     u8 tileIndex = 0;
     u8 tilePaletteBit32 = 0;
     u8 bitPlane0;
@@ -45,6 +51,10 @@ private:
     u8 lastSpriteID = 0;
     u8 hasSprite0 = 0;
     u8 lastSpriteY = 0;
+    u32 frameCount = 0;
+
+    nes_cycle_t _master_cycle;
+    nes_ppu_cycle_t _scanline_cycle;
 
     std::vector<u8> entireFrameBuffer;
     std::vector<u8> frameBuffer1;
@@ -69,6 +79,8 @@ private:
     u8 get_palette_color(bool is_background, uint8_t palette_index_4_bit);
 
     ppu::Sprite *getSprite(u8 sprite_id);
+
+    void swap_buffer();
 
     //https://www.nesdev.org/wiki/PPU_registers
 
