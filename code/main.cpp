@@ -22,6 +22,8 @@ int main(int argc, char* argv[])
 
     PPU ppu(cpu.getMemory());
 
+    cartridge.loadToVRam(ppu.getVRam());
+
     if (SDL_Init(SDL_INIT_VIDEO) != 0)
     {
         return 1;

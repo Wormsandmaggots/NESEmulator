@@ -161,7 +161,8 @@ void PPU::init(Memory* shared) {
 
     spriteBuffer.resize(8);
 
-    regs.oam.resize(oamSize);
+    regs.oam.resize(oamSize, 0);
+    vram.resize(vRamSize, 0);
 
     _master_cycle = nes_cycle_t(0);
     _scanline_cycle = nes_ppu_cycle_t(0);
@@ -185,6 +186,10 @@ std::vector<uint32_t> PPU::getFrame() const {
     }
 
     return frame;
+}
+
+uint8_t *PPU::getVRam() {
+    return vram.data();
 }
 
 void PPU::step(nes_cycle_t count) {

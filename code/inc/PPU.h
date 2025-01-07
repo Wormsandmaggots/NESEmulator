@@ -25,6 +25,8 @@ public:
     std::vector<u8> getFrameBuffer() const;
     std::vector<u32> getFrame() const;
 
+    uint8_t *getVRam();
+
     static std::function<void(u16)> setOAMDMA;
 private:
     ppu::Registers regs{};
@@ -32,6 +34,7 @@ private:
     Memory* sharedMemory = null;
 
     //Memory oam = Memory(oamSize);
+    std::vector<u8> vram;
     std::vector<u8> frameBuffer{};
     std::array<Color, paletteSize> palette;
 

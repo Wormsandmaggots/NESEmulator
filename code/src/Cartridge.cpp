@@ -71,18 +71,27 @@ void Cartridge::loadToMemory(Memory* mem) const {
             mem->write(0x8000, nesFile->prg_rom.data(), nesFile->prg_rom.size());
 
             if(nesFile->prg_rom.size() == 0x4000) {
-                mem->write(0xC000, nesFile->chr_rom.data(), nesFile->chr_rom.size());
+                mem->write(0xC000, nesFile->prg_rom.data(), nesFile->prg_rom.size());
             }
 
-            if (!nesFile->chr_rom.empty()) {
-                mem->write(0x0000, nesFile->chr_rom.data(), nesFile->chr_rom.size());
-            }
             break;
         }
         default:
             ERRORLOG(error::unsupportedMapper);
     }
 }
+
+void Cartridge::loadToVRam(u8 *vram) const {
+    switch(nesFile->mapper) {
+        case 0: {
+            std::copy_n(nesFile->chr_rom.data(), nesFile->chr_rom.size(), vram);
+            break;
+        }
+        default:
+            ERRORLOG(error::unsupportedMapper);
+    }
+}
+
 
 Cartridge::Cartridge(const char *path) {
     this->path = path;

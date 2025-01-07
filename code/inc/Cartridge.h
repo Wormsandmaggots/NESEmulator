@@ -40,6 +40,7 @@ public:
 
     const NESFile* getNESFile() const;
     void loadToMemory(Memory* mem) const;
+    void loadToVRam(u8* vram) const;
 
 private:
     NESFile* nesFile = null;
