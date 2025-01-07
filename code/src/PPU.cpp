@@ -12,6 +12,8 @@
 #define PPU_SCANLINE_CYCLE nes_ppu_cycle_t(341)
 #define PPU_SCANLINE_COUNT 262
 
+std::function<void(u16)> PPU::setOAMDMA = nullptr;
+
 
 namespace ppu {
     constexpr u16 PPUCTRLAddress = 0x2000;
@@ -22,7 +24,16 @@ namespace ppu {
     constexpr u16 PPUSCROLLAddress = 0x2005;
     constexpr u16 PPUADDRAddress = 0x2006;
     constexpr u16 PPUDATAAddress = 0x2007;
-    constexpr u16 OAMDMAAddress = 0x2008;
+    constexpr u16 OAMDMAAddress = 0x4014;
+}
+
+bool isIOReg(u16 addr) {
+    if ((addr & 0xfff8) == 0x2000)
+        return true;
+    // $4000~401f
+    if ((addr & 0xffe0) == 0x4000)
+        return true;
+    return false;
 }
 
 using namespace ppu;
@@ -30,6 +41,79 @@ using namespace ppu;
 PPU::PPU(Memory* shared) {
     this->sharedMemory = shared;
     init(sharedMemory);
+
+    setOAMDMA = std::function<void(u16)>([&](u16 address) {
+        if (*regs.OAMAddr == 0)
+        {
+            // simple case - copy the 0x100 bytes directly
+            //_system->ram()->get_bytes(_oam.get(), PPU_OAM_SIZE, addr, PPU_OAM_SIZE);
+            sharedMemory->get_bytes(regs.oam.data(), 0x100, address, 0x100);
+        }
+        else
+        {
+            // the copy starts at _oam_addr and wraps around
+            int copy_before_wrap = 0x100 - *regs.OAMAddr;
+            sharedMemory->get_bytes(regs.oam.data() + *regs.OAMAddr, copy_before_wrap, address, copy_before_wrap);
+            sharedMemory->get_bytes(regs.oam.data(), 0x100 - copy_before_wrap, address + copy_before_wrap, 0x100 - copy_before_wrap);
+        }
+    });
+
+    sharedMemory->beforeWrite.push_back([this](u16 addr, u8& val) -> bool {
+        switch (addr) {
+            case PPUCTRLAddress:
+                if(!is_ready()) return false;
+
+                regs.writePPUCTRL(val);
+                break;
+            case PPUMASKAddress:
+                regs.writePPUMASK(val);
+                break;
+            case OAMADDRAddress:
+                regs.writeOAMADDR(val);
+                break;
+            case OAMDATAAddress:
+                regs.writeOAMDATA(val);
+                break;
+            case PPUSCROLLAddress:
+                if(!is_ready()) return false;
+
+                regs.writePPUSCROLL(val);
+                break;
+            case PPUADDRAddress:
+                regs.writePPUAADDR(val);
+                break;
+            case PPUDATAAddress:
+                regs.writePPUData(val, sharedMemory);
+                break;
+            case OAMDMAAddress://tu się jebie
+                regs.writeOAMDMA(val);
+                break;
+            default:
+                //do nothing
+                break;
+        }
+
+        if(isIOReg(addr)) regs.writeLatch(val);
+
+        return true;
+    });
+
+    sharedMemory->beforeRead.push_back([this](u16 addr) -> std::optional<u8> {
+
+        switch (addr) {
+            case PPUSTATUSAddress:
+                return regs.readPPUSTATUS();
+            case OAMDATAAddress:
+                return regs.readOAMDATA();
+            case PPUDATAAddress:
+                return regs.readPPUDATA(sharedMemory);
+            default:
+                //do nothing
+                break;
+        }
+
+        return isIOReg(addr) ? std::optional(regs.latch) : std::nullopt;
+    });
 
     palette = {{
         {0x80, 0x80, 0x80}, {0x00, 0x3D, 0xA6}, {0x00, 0x12, 0xB0}, {0x44, 0x00, 0x96},
@@ -68,8 +152,7 @@ void PPU::init(Memory* shared) {
     regs.PPUMask = &shared->getReference(PPUMASKAddress);
     regs.PPUScroll = &shared->getReference(PPUSCROLLAddress);
     regs.PPUStatus = &shared->getReference(PPUSTATUSAddress);
-
-    cycle = 0;
+    regs.OAMDMA = &shared->getReference(OAMDMAAddress);
 
     entireFrameBuffer.resize(resolution.x * resolution.y);
     frameBuffer1.resize(resolution.x * resolution.y);
@@ -78,34 +161,10 @@ void PPU::init(Memory* shared) {
 
     spriteBuffer.resize(8);
 
-    oam.resize(oamSize);
-}
+    regs.oam.resize(oamSize);
 
-void PPU::update() {
-    // // Symulacja renderowania wszystkich widocznych linii
-    // for (int y = 0; y < resolution.y; ++y) {
-    //     for (int x = 0; x < resolution.x; ++x) {
-    //         renderPixel(x, y);
-    //     }
-    // }
-
-    for (int scanline = 0; scanline < resolution.y; ++scanline) {
-        renderBackgroundLine(scanline);
-    }
-
-    if ((*regs.PPUAddr & 0x1f) == 0x1f)
-    {
-        // Wrap to the next name table
-        *regs.PPUAddr &= ~0x1f;
-        *regs.PPUAddr ^= 0x0400;
-    }
-    else
-    {
-        *regs.PPUAddr++;
-    }
-
-    // Po zakończeniu ramki oznacz ją jako gotową
-    frameReady = true;
+    _master_cycle = nes_cycle_t(0);
+    _scanline_cycle = nes_ppu_cycle_t(0);
 }
 
 std::vector<u8> PPU::getFrameBuffer() const {
@@ -121,140 +180,16 @@ std::vector<uint32_t> PPU::getFrame() const {
 
     frame.resize(frameBuffer.size());
     for (int i = 0; i < frameBuffer.size(); ++i) {
-        frame[i] = palette[frameBuffer[i] & 0xff].makeu32();
+        Color c = palette[frameBuffer[i] & 0xff];
+        frame[i] = c.makeu32();
     }
 
     return frame;
 }
 
-void PPU::renderPixel(u16 x, u16 y) {
-    if (x < 0 || x >= resolution.x || y < 0 || y >= resolution.y) {
-        return; // Ignoruj piksele poza ekranem
-    }
-
-    // Oblicz pozycję kafelka (8x8)
-    int tileX = x / 8;
-    int tileY = y / 8;
-
-    // Offset pikseli w kafelku
-    int pixelX = x % 8;
-    int pixelY = y % 8;
-
-    // Oblicz adres kafelka w pamięci
-    u16 tileIndex = (tileY * 32 + tileX) & 0x3FF; // Tabela kafelków mieści się w 10 bitach
-    u16 tileAddress = PPUCTRLAddress + tileIndex;
-
-    // Pobierz dane kafelka
-    u8 tileLow = sharedMemory->getReference(tileAddress + pixelY);
-    u8 tileHigh = sharedMemory->getReference(tileAddress + pixelY + 8);
-
-    // Oblicz kolor piksela
-    u8 paletteIndex = ((tileHigh >> (7 - pixelX)) & 1) << 1 | ((tileLow >> (7 - pixelX)) & 1);
-    Color c = palette[paletteIndex];
-
-    // Zapisz kolor do bufora klatki
-    //entireFrameBuffer[y * resolution.x + x] = c;
-}
-
-void PPU::renderBackgroundLine(int scanline) {
-    if (scanline < 0 || scanline >= resolution.y) {
-        return; // Ignoruj linie poza widocznym ekranem
-    }
-
-    for (int x = 0; x < resolution.x; ++x) {
-        // Oblicz pozycję w Name Table
-        int tileX = (x + regs.X) / 8;
-        int tileY = (scanline + regs.yScroll) / 8;
-
-        u16 nameTableBase = 0x2000 + ((*regs.PPUControl & 0b11) * 0x400); // Wybranie właściwej Name Table
-        u16 tileIndex = (tileY % 30) * 32 + (tileX % 32); // Indeks kafelka w Name Table
-        u8 tileID = sharedMemory->getReference(nameTableBase + tileIndex);
-
-        // Oblicz adres w Pattern Table
-        u16 patternTableBase = (*regs.PPUControl & 0b0001) ? 0x1000 : 0x0000; // Wybranie Pattern Table
-        u16 tileAddress = patternTableBase + tileID * 16;
-
-        // Wczytaj dane kafelka
-        int pixelY = (scanline + regs.yScroll) % 8; // Wiersz w kafelku
-        u8 tileLow = sharedMemory->getReference(tileAddress + pixelY);
-        u8 tileHigh = sharedMemory->getReference(tileAddress + pixelY + 8);
-
-        // Oblicz kolor piksela
-        int pixelX = (x + regs.X) % 8; // Kolumna w kafelku
-        u8 paletteIndex = ((tileHigh >> (7 - pixelX)) & 1) << 1 | ((tileLow >> (7 - pixelX)) & 1);
-
-        // Pobierz informację o atrybucie (palecie)
-        int attributeX = tileX / 4;
-        int attributeY = tileY / 4;
-        u16 attributeAddress = nameTableBase + 0x03C0 + (attributeY * 8 + attributeX);
-        u8 attributeByte = sharedMemory->getReference(attributeAddress);
-
-        // Przesunięcie w bajcie atrybutów
-        int shift = ((tileY % 4 >= 2) ? 4 : 0) + ((tileX % 4 >= 2) ? 2 : 0);
-        u8 paletteSelect = (attributeByte >> shift) & 0b11;
-
-        // Pobierz kolor z palety
-        u8 colorIndex = paletteSelect * 4 + paletteIndex;
-        Color c = palette[colorIndex]; // Adres palety
-
-        // Zapisz kolor do bufora
-        //entireFrameBuffer[scanline * resolution.x + x] = c;
-    }
-}
-
-void PPU::render() {
-
-    for (auto & x : entireFrameBuffer) {
-        x = 0;
-    }
-
-    while(scanline != 341) {
-        //step();
-
-        if(scanline <= 239) {
-            tilesPipeline();
-            spritesPipeline();
-        }
-        else if(scanline == 240) {
-
-        }
-        else if(scanline < 261) {
-            if(scanline == 241 && cycle == 1) {
-                regs.setVblankFlag(true);
-
-                if(regs.vblankNmi())
-                    CPU::setNMI();
-            }
-
-            if (scanline == 260 && cycle > 329) {
-                regs.setVblankFlag(false);
-            }
-        }
-        else {
-            if(scanline == 261) {
-                if(cycle == 0) {
-                    regs.setVblankFlag(true);
-
-                    if (regs.showBackground() || regs.showSprites())
-                    {
-                        *regs.PPUAddr = regs.T;
-                    }
-                }
-                else if(cycle == 1) {
-                    regs.setSprite0Hit(false);
-                }
-            }
-
-            if(cycle == 340 && frameCount % 2 == 1) {
-
-            }
-        }
-    }
-}
-
 void PPU::step(nes_cycle_t count) {
     while(_master_cycle < count) {
-        step(nes_ppu_cycle_t(1));
+        step_ppu(nes_ppu_cycle_t(1));
 
         if(scanline <= 239) {
             tilesPipeline();
@@ -674,8 +609,8 @@ u8 PPU::get_palette_color(bool is_background, uint8_t palette_index_4_bit) {
     return (*sharedMemory)[palette_addr];
 }
 
-Sprite* PPU::getSprite(uint8_t sprite_id) {
-    return (Sprite *)oam[sprite_id];
+Sprite* PPU::getSprite(uint8_t sprite_id) const {
+    return reinterpret_cast<Sprite *>(regs.oam[sprite_id]);
 }
 
 void PPU::step_ppu(nes_ppu_cycle_t count) {

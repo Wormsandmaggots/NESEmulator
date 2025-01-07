@@ -14,7 +14,7 @@ int main(int argc, char* argv[])
     CPU cpu;
     cpu.init();
 
-    Cartridge cartridge("mario.nes");
+    Cartridge cartridge(R"(D:\Projects\roms\mario.nes)");
 
     cartridge.load();
     cartridge.loadToMemory(cpu.getMemory());
@@ -103,8 +103,6 @@ int main(int argc, char* argv[])
         SDL_RenderClear(renderer);
         SDL_RenderCopy(renderer, texture, null, null);
         SDL_RenderPresent(renderer);
-
-        SDL_Delay(1);
     }
 
     SDL_DestroyRenderer(renderer);

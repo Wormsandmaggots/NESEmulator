@@ -4,10 +4,15 @@
 
 #include "CPU.h"
 
+#include <iostream>
+
 #include "Opcodes.h"
+#include "PPU.h"
 #include "Utils.h"
 
 bool CPU::executeNMI = false;
+u16 CPU::OMDDMAAddress = 0;
+bool CPU::executeDMA = false;
 
 void CPU::init() {
 
@@ -25,7 +30,7 @@ void CPU::reset() const {
 
     u16 hi = (*mem)[0xFFFD] << 8;
     u16 lo = (*mem)[0xFFFC];
-
+    //
     regs->PC =  hi | lo;
     regs->S = 0xFD;
 
@@ -43,7 +48,16 @@ void CPU::execute(Instruction instruction) {
     handleInterrupt();
 
     InstructionContext ic;
-    INFOLOG(opcodes::Names[instruction.opcodeAddress] +  " " + std::to_string(instruction.opcodeAddress));
+
+    if(instruction.opcodeAddress != 173 && instruction.opcodeAddress != 16) {
+        currentInstruction++;
+        INFOLOG(std::to_string(currentInstruction) + ". " + opcodes::Names[instruction.opcodeAddress] +  " " + std::to_string(instruction.opcodeAddress));
+    }
+
+    if(currentInstruction == 29)
+        currentInstruction = 0;
+
+
     ic.mem = mem;
     ic.regs = regs;
     ic.mode = instruction.mode;
@@ -54,7 +68,7 @@ void CPU::execute(Instruction instruction) {
 
     instruction(ic);
 
-    cycle += nes_cpu_cycle_t(instruction.cycles);
+    cycle += nes_cpu_cycle_t(instruction.getCycles(ic));
 }
 
 Instruction CPU::getInstruction() const {
@@ -74,51 +88,60 @@ u16 CPU::fetchImmediate() const {
 }
 
 u16 CPU::fetchZeroPage() const {
-    return (*mem)[fetchImmediate()];
+    return (u16)(*mem)[fetchImmediate()];
 }
 
 u16 CPU::fetchZeroPageX() const {
-    return (fetchZeroPage() + regs->X) % 0x100;
+    return (fetchZeroPage() + regs->X) & 0xff;
 }
 
 u16 CPU::fetchZeroPageY() const {
-    return (fetchZeroPage() + regs->Y) % 0x100;
+    return (fetchZeroPage() + regs->Y) & 0xff;
 }
 
 u16 CPU::fetchAbsolute() const {
-    const u16 address = (*mem)[regs->PC++] | ((*mem)[regs->PC++] << 8);
+    const u16 address = static_cast<u16>((*mem)[regs->PC++]) | (static_cast<u16>((*mem)[regs->PC++]) << 8);
     return address;
 }
 
 u16 CPU::fetchAbsoluteX() const {
-    const u16 address = (fetchAbsolute() + regs->X) % 0x100;
+    const u16 address = (fetchAbsolute() + regs->X);
     return address;
 }
 
 u16 CPU::fetchAbsoluteY() const {
-    const u16 address = (fetchAbsolute() + regs->Y) %  0x100;
+    const u16 address = (fetchAbsolute() + regs->Y);
     return address;
 }
 
 u16 CPU::fetchIndirect() const {
-    const u8 pointer = (*mem)[regs->PC++] | ((*mem)[regs->PC++] << 8);
+    const u16 pointer = (*mem)[regs->PC++] | (static_cast<u16>((*mem)[regs->PC++]) << 8);
     //const u16 address = (*mem)[pointer] | ((*mem)[(pointer & 0xFF00) | ((pointer + 1) & 0xFF)] << 8);
+    if((pointer & 0xff) == 0xff) {
+        return (*mem)[pointer] + (static_cast<u16>((*mem)[pointer & 0xff00]) << 8);
+    }
+
+    return (*mem)[pointer] | (static_cast<u16>((*mem)[pointer + 1]) << 8);
     const u16 address = opcodes::mergeToU16(pointer, (pointer + 1) % 0x100);
     return address;
 }
 
 u16 CPU::fetchIndirectIndexedX() const {
-    // const u8 pointer = ((*mem)[regs->PC++] + regs->X) & 0xFF;
+    const u8 pointer = (*mem)[regs->PC++];
     // const u16 address = (*mem)[pointer] | ((*mem)[(pointer + 1) & 0xFF] << 8);
     // return address;
-    return (fetchIndirect() + regs->X) % 0x100;
+    u16 val = (*mem)[(pointer + regs->X) & 0xff] + (static_cast<u16>((*mem)[(pointer + regs->X + 1) & 0xff]) << 8);
+    return val;
 }
 
 u16 CPU::fetchIndirectIndexedY() const {
     // const u8 pointer = (*mem)[regs->PC++];
     // const u16 address = ((*mem)[pointer] | ((*mem)[(pointer + 1) & 0xFF] << 8)) + regs->Y;
     // return (*mem)[address];
-    return (fetchIndirect() + regs->Y) % 0x100;
+    const u8 pointer = (*mem)[regs->PC++];
+    u16 addr = (*mem)[pointer] + (static_cast<u16>((*mem)[(pointer + 1) & 0xff]) << 8);
+    u16 newAddr = addr + regs->Y;
+    return newAddr;
 }
 
 u16 CPU::fetchAccumulator() const {
@@ -144,19 +167,19 @@ void CPU::handleInterrupt() {
         regs->setStatus(InterruptDisable);
         clearVBlankFlag();
 
+        executeNMI = false;
         return;
     }
+    else if(executeDMA) {
+        PPU::setOAMDMA(OMDDMAAddress);
+        //_system->ppu()->oam_dma(_dma_addr);
 
-    // Sprawdź, czy jest aktywne przerwanie IRQ
-    if (interrupt == IRQ && !regs->getStatus(InterruptDisable)) { // Flaga Interrupt Disable (I) = 0
-        interrupt = None;
-        // Zapisz stan procesora
-        pushStatus();
-        pushAddress(regs->PC);
-        regs->PC = mem->read(0xFFFE) | (mem->read(0xFFFF) << 8); // Skok do wektora IRQ
-        // Zresetuj flagę przerwań
-        regs->setStatus(InterruptDisable);
-        return;
+        // The entire DMA takes 513 or 514 cycles
+        // http://wiki.nesdev.com/w/index.php/PPU_registers#OAMDMA
+        if (cycle % 2 == nes_cpu_cycle_t(0))
+            cycle += nes_cpu_cycle_t(514);
+        else
+            cycle += nes_cpu_cycle_t(513);
     }
 }
 
@@ -235,4 +258,9 @@ void CPU::step(nes_cycle_t new_count) {
 
 void CPU::setNMI() {
     executeNMI = true;
+}
+
+void CPU::setDMA(uint16_t omddmaAddress) {
+    executeDMA = true;
+    OMDDMAAddress = omddmaAddress;
 }

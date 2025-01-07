@@ -4,6 +4,7 @@
 
 #include "Cartridge.h"
 
+#include <cassert>
 #include <cstring>
 #include <fstream>
 #include <vector>
@@ -21,13 +22,17 @@ bool Cartridge::load() {
 
     this->path = path;
 
-    std::ifstream file(path, std::ios::binary);
+    std::ifstream file;
+    file.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+    file.open(path, std::ifstream::in | std::ifstream::binary);
     if (!file) {
         ERRORLOG(error::cantOpenFile);
         return false;
     }
 
-    file.read(reinterpret_cast<char*>(&header), sizeof(FileHeader));
+    assert(sizeof(header) == 16);
+
+    file.read((char*)&header, sizeof(header));
 
     if (strncmp(header.magic, NES, 4) != 0) {
         ERRORLOG(error::unsupportedFileFormat);
@@ -44,13 +49,14 @@ bool Cartridge::load() {
         file.seekg(512, std::ios::cur);
     }
 
-    nesFile->prg_rom.resize(header.prg_rom_size * 16384);
-    file.read(reinterpret_cast<char*>(nesFile->prg_rom.data()), nesFile->prg_rom.size());
+    int prg_rom_size = header.prg_rom_size * 0x4000;    // 16KB
+    int chr_rom_size = header.chr_rom_size * 0x2000;    // 8KB
 
-    if (header.chr_rom_size > 0) {
-        nesFile->chr_rom.resize(header.chr_rom_size * 8192);
-        file.read(reinterpret_cast<char*>(nesFile->chr_rom.data()), nesFile->chr_rom.size());
-    }
+    nesFile->prg_rom = std::vector<uint8_t>(prg_rom_size);
+    nesFile->chr_rom = std::vector<uint8_t>(chr_rom_size);
+
+    file.read((char *)nesFile->prg_rom.data(), nesFile->prg_rom.size());
+    file.read((char *)nesFile->chr_rom.data(), nesFile->chr_rom.size());
 
     return true;
 }

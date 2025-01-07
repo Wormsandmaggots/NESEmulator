@@ -13,6 +13,7 @@
 #include "Types.h"
 #include <chrono>
 
+
 using namespace std::chrono;
 
 #define NES_CLOCK_HZ (21477272ll / 4)
@@ -137,7 +138,7 @@ namespace cpu {
 namespace opcodes {
     bool isBranchInstruction(u8 opcode);
     bool branchConditionMet(u8 opcode, const cpu::Registers& regs);
-    bool hasPageCrossed(u16 baseAddr, u8 offset);
+    bool hasPageCrossed(u16 baseAddr, i8 offset);
     bool u16AddressingMode(cpu::AddressingMode addressingMode);
     bool i8AddressingMode(cpu::AddressingMode addressingMode);
 
@@ -177,6 +178,8 @@ namespace ppu {
         u8 latch = 0;
         bool protect = false;
         bool maskOAMRead = false;
+
+        std::vector<u8> oam;
 
         bool showBackground() const {
             return (*PPUMask) & Bit3;
@@ -258,7 +261,7 @@ namespace ppu {
                 yScroll = val;
             }
 
-            *PPUScroll = val;
+            (*PPUScroll) = val;
         }
 
         void writePPUCTRL(u8 val) {
@@ -284,8 +287,80 @@ namespace ppu {
                 // second write
                 // note that both PPUADDR(2006) and PPUSCROLL (2005) share the same _temp_ppu_addr
                 T = (T & 0xff00) | val;
-                *PPUAddr = T;
+                (*PPUAddr) = T;
             }
+        }
+
+        void writePPUMASK(u8 val) {
+            writeLatch(val);
+            (*PPUMask) = val;
+        }
+
+        void writeOAMADDR(u8 val) {
+            writeLatch(val);
+            (*OAMAddr) = val;
+        }
+
+        void writeOAMDATA(u8 val)
+        {
+            writeLatch(val);
+
+            oam[(*OAMAddr)] = val;
+            (*OAMAddr)++;
+        }
+
+        void writePPUData(u8 val, Memory* mem) {
+            writeLatch(val);
+
+            mem->write((*PPUAddr), val);
+            (*PPUAddr) += ppuAddressIncValue();
+        }
+
+        void writeOAMDMA(u8 val);
+
+        u8 readPPUSTATUS() {
+            u8 status = (*PPUStatus);
+
+            if(!protect) {
+                setVblankFlag(false);
+                W = false;
+                writeLatch(status);
+            }
+
+            return status;
+        }
+
+        u8 readOAMDATA() {
+            if (maskOAMRead)
+                return 0xff;
+
+            uint8_t val = oam[(*OAMAddr)];
+            writeLatch(val);
+            return val;
+        }
+
+        u8 readPPUDATA(Memory* sharedMemory) {
+            uint8_t val = *PPUData;
+            uint8_t new_val = sharedMemory->read(*PPUAddr);
+
+            bool is_palette = ((*PPUAddr & 0xff00) == 0x3f00);
+            if (!protect)
+            {
+                // for palette - the read buf is updated with the mirrored nametable address
+                if (is_palette)
+                    *PPUData = sharedMemory->read(*PPUAddr - 0x1000);
+                else
+                    *PPUData = new_val;
+                (*PPUAddr) += ppuAddressIncValue();
+            }
+
+            writeLatch(val);
+
+            // palette reads returns the correct data immediately
+            if (is_palette)
+                return new_val;
+
+            return val;
         }
     };
 }

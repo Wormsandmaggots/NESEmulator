@@ -1096,16 +1096,12 @@ void opcodes::CMP(InstructionContext ic) {
 
     // Wykonaj operację porównania
     u8 A = ic.regs->A;
-    u16 result = static_cast<u16>(A) - static_cast<u16>(operand);
+    u8 result = A - operand;
 
     // Ustaw flagę Carry, jeśli A >= operand
     ic.setStatus(StatusFlag::Carry, A >= operand);
 
-    // Ustaw flagę Zero, jeśli wynik jest równy 0
-    ic.setStatus(StatusFlag::Zero, (result & 0xFF) == 0);
-
-    // Ustaw flagę Negative na podstawie najwyższego bitu wyniku
-    ic.setStatus(StatusFlag::Negative, result & Bit7);
+    setZN(ic, result);
 }
 
 void opcodes::DEC(InstructionContext ic) {

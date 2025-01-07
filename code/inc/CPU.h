@@ -39,15 +39,21 @@ public:
     void step(nes_cycle_t new_count);
 
     static void setNMI();
+    static void setDMA(u16 omddmaAddress);
 
 private:
     static bool executeNMI;
+    static bool executeDMA;
+
+    u64 currentInstruction = 0;
 
     Registers* regs = null;
     Memory* mem = null;
     Interrupt interrupt = None;
 
     nes_cycle_t cycle;
+
+    static u16 OMDDMAAddress;
 
     u16 fetchImmediate() const;
     u16 fetchZeroPage() const;

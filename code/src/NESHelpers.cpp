@@ -3,6 +3,8 @@
 //
 #include "NESHelpers.h"
 
+#include "CPU.h"
+
 bool opcodes::isBranchInstruction(const uint8_t opcode) {
     return opcode == 0x10 || // BPL
        opcode == 0x30 || // BMI
@@ -28,15 +30,18 @@ bool opcodes::branchConditionMet(const uint8_t opcode, const cpu::Registers &reg
     }
 }
 
-bool opcodes::hasPageCrossed(const uint16_t baseAddr, const uint8_t offset) {
-    const u16 newAddr = baseAddr + offset;
-    return (baseAddr & 0xFF00) != (newAddr & 0xFF00);
+bool opcodes::hasPageCrossed(const u16 baseAddr, const i8 offset) {
+    return ((baseAddr) & 0xff00) != ((baseAddr - offset) & 0xff00);
 }
 
-bool opcodes::u16AddressingMode(const cpu::AddressingMode addressingMode) {
-    return addressingMode == cpu::AddressingMode::Indirect || addressingMode == cpu::AddressingMode::Absolute;
+bool opcodes::u16AddressingMode(const AddressingMode addressingMode) {
+    return addressingMode == AddressingMode::Indirect || addressingMode == AddressingMode::Absolute;
 }
 
-bool opcodes::i8AddressingMode(const cpu::AddressingMode addressingMode) {
-    return addressingMode == cpu::AddressingMode::Relative;
+bool opcodes::i8AddressingMode(const AddressingMode addressingMode) {
+    return addressingMode == AddressingMode::Relative;
+}
+
+void ppu::Registers::writeOAMDMA(uint8_t val) {
+    CPU::setDMA((uint16_t(val) << 8));
 }

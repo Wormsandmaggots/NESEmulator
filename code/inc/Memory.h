@@ -5,6 +5,8 @@
 #ifndef MEMORY_H
 #define MEMORY_H
 
+#include <functional>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -35,14 +37,20 @@ public:
 
     void write(u16 addr, u8 data);
     void write(u16 startAddr, u8* dataStart, u32 amount);
+    void get_bytes(uint8_t *dest, uint16_t dest_size, uint16_t src_addr, size_t src_size);
+    void redirect_addr(uint16_t &addr) const;
 
     u8 operator[](u16 addr) const;
 
     std::string toString() const;
 
+    std::vector<std::function<bool(u16, u8&)>> beforeWrite;
+    std::vector<std::function<std::optional<u8>(u16)>> beforeRead;
+
 private:
     std::vector<u8> data;
     u32 maxSize;
+
 };
 
 
