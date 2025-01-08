@@ -407,7 +407,7 @@ void PPU::fetchTile() {
         // fetch nametable byte for current 8-pixel-tile
         // http://wiki.nesdev.com/w/index.php/PPU_nametables
         uint16_t name_tbl_addr = (*regs.PPUAddr & 0xfff) | 0x2000;
-        tileIndex = (*sharedMemory)[name_tbl_addr];
+        tileIndex = vram[name_tbl_addr];
     }
     else if (data_access_cycle == nes_ppu_cycle_t(2))
     {
@@ -421,7 +421,7 @@ void PPU::fetchTile() {
         uint8_t tile_attr_column = (tile_column >> 2) & 0x7;
         uint8_t tile_attr_row = (tile_row >> 2) & 0x7;
         uint16_t attr_tbl_addr = 0x23c0 | (*regs.PPUAddr & 0x0c00) | (tile_attr_row << 3) | tile_attr_column;
-        uint8_t color_byte = (*sharedMemory)[attr_tbl_addr];
+        uint8_t color_byte = vram[attr_tbl_addr];
 
         // each quadrant has 2x2 tile and each row/column has 4 tiles, so divide by 2 (& 0x2 is faster)
         uint8_t _quadrant_id = (tile_row & 0x2) + ((tile_column & 0x2) >> 1);
@@ -590,7 +590,7 @@ u8 PPU::read_pattern_table_column(bool sprite, u8 tile_index, u8 bitplane, u8 ti
     uint16_t tile_addr = sprite ? regs.spritePatternTableAddress() : regs.backgroundPatternTableAddress();
     tile_addr |= (tile_index << 4);
 
-    return (*sharedMemory)[tile_addr | (bitplane << 3) | tile_row_index];
+    return vram[tile_addr | (bitplane << 3) | tile_row_index];
 }
 
 uint8_t PPU::read_pattern_table_column_8x16_sprite(uint8_t tile_index, uint8_t bitplane, uint8_t tile_row_index) {
@@ -602,7 +602,7 @@ uint8_t PPU::read_pattern_table_column_8x16_sprite(uint8_t tile_index, uint8_t b
     // 8-f: bitplane 1 for top tile       --> tile row index 0-7
     // 10-17: bitplane 0 for bottom tile  --> tile row index 8-f
     // 18-1f: bitplane 1 for bottom tile  --> tile row index 8-f
-    return (*sharedMemory)[tile_addr | (bitplane << 3) | (tile_row_index & 0x7) | ((tile_row_index & 0x8) << 1)];
+    return vram[tile_addr | (bitplane << 3) | (tile_row_index & 0x7) | ((tile_row_index & 0x8) << 1)];
 }
 
 u8 PPU::get_palette_color(bool is_background, uint8_t palette_index_4_bit) {
@@ -611,7 +611,7 @@ u8 PPU::get_palette_color(bool is_background, uint8_t palette_index_4_bit) {
         return (*sharedMemory)[0x3f00];
 
     uint16_t palette_addr = (is_background ? 0x3f00 : 0x3f10) | palette_index_4_bit;
-    return (*sharedMemory)[palette_addr];
+    return vram[palette_addr];
 }
 
 Sprite* PPU::getSprite(uint8_t sprite_id) const {

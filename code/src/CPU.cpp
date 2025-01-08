@@ -45,30 +45,66 @@ void CPU::cleanup() {
 }
 
 void CPU::execute(Instruction instruction) {
-    handleInterrupt();
+    if(executeNMI) {
+        pushAddress(regs->PC);
+        pushStatus(false);
+        regs->PC = mem->read(0xFFFA) | (mem->read(0xFFFB) << 8); // Skok do wektora NMI
+        // Zresetuj flagę przerwań
+        regs->setStatus(InterruptDisable);
+        clearVBlankFlag();
 
-    InstructionContext ic;
-
-    if(instruction.opcodeAddress != 173 && instruction.opcodeAddress != 16) {
-        currentInstruction++;
-        INFOLOG(std::to_string(currentInstruction) + ". " + opcodes::Names[instruction.opcodeAddress] +  " " + std::to_string(instruction.opcodeAddress));
+        executeNMI = false;
     }
+    else if(executeDMA) {
+        PPU::setOAMDMA(OMDDMAAddress);
+        //_system->ppu()->oam_dma(_dma_addr);
 
-    if(currentInstruction == 29)
-        currentInstruction = 0;
+        PPU::setOAMDMA(OMDDMAAddress);
 
+        // The entire DMA takes 513 or 514 cycles
+        // http://wiki.nesdev.com/w/index.php/PPU_registers#OAMDMA
+        if (cycle % 2 == nes_cpu_cycle_t(0))
+            cycle += nes_cpu_cycle_t(514);
+        else
+            cycle += nes_cpu_cycle_t(513);
+    }
+    else {
+        if(instruction.cycles < 0) {
+            std::cout << instruction.cycles << std::endl;
+        }
 
-    ic.mem = mem;
-    ic.regs = regs;
-    ic.mode = instruction.mode;
+        InstructionContext ic;
 
-    regs->PC++;
+        if(instruction.opcodeAddress != 173 && instruction.opcodeAddress != 16) {
+            currentInstruction++;
+            INFOLOG(std::to_string(currentInstruction) + ". " + opcodes::Names[instruction.opcodeAddress] +  " " + std::to_string(instruction.opcodeAddress));
+        }
 
-    ic.value = fetch(ic.mode);
+        if(instruction.opcodeAddress != 173 && instruction.opcodeAddress != 16 && regs->A == 32) {
+            currentInstruction = currentInstruction;
+        }
 
-    instruction(ic);
+        if(instruction.opcodeAddress == 153) {
+            std::cout << instruction.cycles << std::endl;
+        }
 
-    cycle += nes_cpu_cycle_t(instruction.getCycles(ic));
+        //problem LDA 153
+
+        if(currentInstruction == 13081)
+            currentInstruction = 0;
+
+        ic.mem = mem;
+        ic.regs = regs;
+        ic.mode = instruction.mode;
+
+        regs->PC++;
+
+        ic.value = fetch(ic.mode);
+
+        instruction(ic);
+
+        cycle += nes_cpu_cycle_t(instruction.getCycles(ic));
+    }
 }
 
 Instruction CPU::getInstruction() const {
@@ -170,7 +206,8 @@ void CPU::handleInterrupt() {
         executeNMI = false;
         return;
     }
-    else if(executeDMA) {
+
+    if(executeDMA) {
         PPU::setOAMDMA(OMDDMAAddress);
         //_system->ppu()->oam_dma(_dma_addr);
 

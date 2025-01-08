@@ -879,12 +879,12 @@ void opcodes::CLI(InstructionContext ic) {
 }
 
 void opcodes::RTS(InstructionContext ic) {
-    const u8 lowByte = ic.read(0x0100 + ic.regs->S++);
-    const u8 highByte = ic.read(0x0100 + ic.regs->S++);
+    ic.regs->S++;
+    const u8 lowByte = ic.read(0x100 + ic.regs->S);
+    ic.regs->S++;
+    const u8 highByte = ic.read(0x100 + ic.regs->S);
 
-    ic.regs->PC = mergeToU16(lowByte, highByte);
-
-    ++ic.regs->S;
+    ic.regs->PC = mergeToU16(lowByte, highByte) + 1;
 }
 
 void opcodes::ADC(InstructionContext ic) {
@@ -963,7 +963,12 @@ void opcodes::SEI(InstructionContext ic) {
 
 void opcodes::STA(InstructionContext ic) {
     // Pobierz wartość adresu, gdzie należy zapisać zawartość akumulatora
-    u8 address = ic.getValueFromAddress(); // Adres jest przechowywany w value, może to być u16
+    u16 address = 0;
+
+    if(ic.mode != Absolute)
+        address = ic.getValueFromAddress(); // Adres jest przechowywany w value, może to być u16
+    else
+        address = ic.value;
 
         // Zapisz wartość akumulatora do pamięci
     ic.write(address, ic.regs->A);
