@@ -197,7 +197,7 @@ void initOpcodes() {
         Instruction{STX, 4, ZeroPageIndexedY},
         ILLEGAL_OPCODE,
         Instruction{TYA, 2, Implicit},
-        Instruction{LDA, 5, AbsoluteIndexedY},
+        Instruction{STA, 5, AbsoluteIndexedY},
         Instruction{TXS, 2, Implicit},
         ILLEGAL_OPCODE,
         ILLEGAL_OPCODE,
