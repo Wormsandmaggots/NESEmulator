@@ -25,6 +25,8 @@ struct InstructionContext {
     u16 value = 0;
 
     void write(const u16 addr,const u8 data) const {
+        if(addr == 16406)
+            INFOLOG("DUPA");
         mem->write(addr, data);
     }
 

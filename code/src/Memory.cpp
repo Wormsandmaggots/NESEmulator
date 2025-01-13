@@ -62,10 +62,8 @@ void Memory::write(u16 addr, u8 data) {
         return;
     }
 
-    if(addr == 2007)
-        addr = 2007;
-
     redirect_addr(addr);
+
     bool canWrite = true;
     for (const auto& func: beforeWrite) {
         if(!func(addr, data)) {

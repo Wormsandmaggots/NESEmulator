@@ -12,6 +12,7 @@
 #include "Memory.h"
 #include "Types.h"
 #include <chrono>
+#include <SDL_keycode.h>
 
 
 using namespace std::chrono;
@@ -91,6 +92,12 @@ namespace cpu {
 
         void setStatus(const StatusFlag flag){
             P |= flag;
+        }
+
+        void SetA(u8 val) {
+            if(val == 32)
+                A = val;
+            A = val;
         }
 
         void setStatus(const StatusFlag flag, const bool condition){
@@ -362,6 +369,44 @@ namespace ppu {
 
             return val;
         }
+    };
+}
+
+namespace input {
+
+    enum class Button : u8 {
+        left = 0x1,
+        right = 0x2,
+        down = 0x4,
+        up = 0x8,
+        select = 0x10,
+        start = 0x20,
+        b = 0x40,
+        a = 0x80
+    };
+    constexpr u16 p1 = 0x4016;
+    constexpr u16 p2 = 0x4017;
+
+    constexpr SDL_Keycode firstPlayerKeys[] = {
+        SDLK_a,
+        SDLK_d,
+        SDLK_s,
+        SDLK_w,
+        SDLK_LSHIFT,
+        SDLK_LCTRL,
+        SDLK_g,
+        SDLK_h
+    };
+
+    constexpr SDL_Keycode secondPlayerKeys[] = {
+        SDLK_RIGHT,
+        SDLK_UP,
+        SDLK_DOWN,
+        SDLK_LEFT,
+        SDLK_RSHIFT,
+        SDLK_KP_ENTER,
+        SDLK_k,
+        SDLK_l
     };
 }
 

@@ -4,6 +4,7 @@
 
 #include "CPU.h"
 
+#include <codecvt>
 #include <iostream>
 
 #include "Opcodes.h"
@@ -59,7 +60,7 @@ void CPU::execute(Instruction instruction) {
         PPU::setOAMDMA(OMDDMAAddress);
         //_system->ppu()->oam_dma(_dma_addr);
 
-        PPU::setOAMDMA(OMDDMAAddress);
+        //PPU::setOAMDMA(OMDDMAAddress);
 
         // The entire DMA takes 513 or 514 cycles
         // http://wiki.nesdev.com/w/index.php/PPU_registers#OAMDMA
@@ -67,6 +68,8 @@ void CPU::execute(Instruction instruction) {
             cycle += nes_cpu_cycle_t(514);
         else
             cycle += nes_cpu_cycle_t(513);
+
+        executeDMA = false;
     }
     else {
         if(instruction.cycles < 0) {
@@ -75,22 +78,25 @@ void CPU::execute(Instruction instruction) {
 
         InstructionContext ic;
 
-        if(instruction.opcodeAddress != 173 && instruction.opcodeAddress != 16) {
+        if(instruction.opcodeAddress != 173 && instruction.opcodeAddress != 16 && instruction.opcodeAddress != 76) {
             currentInstruction++;
             INFOLOG(std::to_string(currentInstruction) + ". " + opcodes::Names[instruction.opcodeAddress] +  " " + std::to_string(instruction.opcodeAddress));
+        }
+        else {
+            currentInstruction = currentInstruction;
         }
 
         if(instruction.opcodeAddress != 173 && instruction.opcodeAddress != 16 && regs->A == 32) {
             currentInstruction = currentInstruction;
         }
 
-        if(instruction.opcodeAddress == 153) {
-            std::cout << instruction.cycles << std::endl;
+        if(instruction.opcodeAddress == 169) {
+            std::cout << (int)instruction.cycles << std::endl;
         }
 
-        //problem LDA 153
+        //19345
 
-        if(currentInstruction == 13081)
+        if(currentInstruction == 19342)
             currentInstruction = 0;
 
         ic.mem = mem;

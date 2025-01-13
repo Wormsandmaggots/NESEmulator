@@ -2,6 +2,7 @@
 
 #include <SDL.h>
 #include "Cartridge.h"
+#include "Controller.h"
 #include "CPU.h"
 #include "Logger.h"
 #include "Opcodes.h"
@@ -23,6 +24,9 @@ int main(int argc, char* argv[])
     PPU ppu(cpu.getMemory());
 
     cartridge.loadToVRam(ppu.getVRam());
+
+    Controller p1(cpu.getMemory(), input::p1, input::firstPlayerKeys);
+    Controller p2(cpu.getMemory(), input::p2, input::secondPlayerKeys);
 
     if (SDL_Init(SDL_INIT_VIDEO) != 0)
     {
@@ -81,6 +85,9 @@ int main(int argc, char* argv[])
             if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_s) {
                 INFOLOG(cpu.getRegisters()->toString());
             }
+
+            p1.updateFromSDL(event);
+            p2.updateFromSDL(event);
         }
 
         u64 cur_counter = SDL_GetPerformanceCounter();

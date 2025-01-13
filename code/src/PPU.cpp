@@ -85,7 +85,7 @@ PPU::PPU(Memory* shared) {
             case PPUDATAAddress:
                 regs.writePPUData(val, sharedMemory);
                 break;
-            case OAMDMAAddress://tu się jebie
+            case OAMDMAAddress:
                 regs.writeOAMDMA(val);
                 break;
             default:
@@ -93,7 +93,7 @@ PPU::PPU(Memory* shared) {
                 break;
         }
 
-        if(isIOReg(addr)) regs.writeLatch(val);
+        if(isIOReg(addr) && addr != 0x4016 && addr != 4017) regs.writeLatch(val);
 
         return true;
     });

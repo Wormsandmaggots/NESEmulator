@@ -660,7 +660,7 @@ void opcodes::ORA(InstructionContext ic) {
     // }
 
     // Wykonaj operację logicznego OR
-    ic.regs->A |= ic.value;
+    ic.regs->SetA(ic.regs->A | ic.getValueFromAddress());
 
     setZN(ic, ic.regs->A);
 }
@@ -677,7 +677,7 @@ void opcodes::ASL(InstructionContext ic) {
 
     // Zapisz wynik (do akumulatora lub pamięci, w zależności od kontekstu)
     if (ic.mode == Accumulator) {
-        ic.regs->A = result;
+        ic.regs->SetA(result);
     } else {
         ic.write(operand, result);
     }
@@ -730,7 +730,7 @@ void opcodes::AND(InstructionContext ic) {
     u8 operand = ic.getValueFromAddress();
 
     // Wykonaj operację bitowego AND z akumulatorem
-    ic.regs->A &= operand;
+    ic.regs->SetA(ic.regs->A & operand);
 
     // Ustaw flagi Zero (Z) i Negative (N) na podstawie wyniku
     setZN(ic, ic.regs->A);
@@ -764,7 +764,8 @@ void opcodes::ROL(InstructionContext ic) {
     if (ic.mode != AddressingMode::Accumulator) {
         ic.write(ic.value, static_cast<u8>(result));
     } else {
-        ic.regs->A = static_cast<u8>(result);
+        ic.regs->SetA(static_cast<u8>(result));
+        //ic.regs->A = static_cast<u8>(result);
     }
 
     // Ustaw flagę Carry na podstawie najbardziej znaczącego bitu operandu
@@ -818,7 +819,8 @@ void opcodes::EOR(InstructionContext ic) {
     u8 operand = ic.getValueFromAddress();
 
     // Wykonaj operację XOR
-    ic.regs->A ^= operand;
+    ic.regs->SetA(ic.regs->A ^ operand);
+    //ic.regs->A ^= operand;
 
     // Ustawienie odpowiednich flag statusu (Zero, Negative)
     setZN(ic, ic.regs->A);
@@ -827,6 +829,9 @@ void opcodes::EOR(InstructionContext ic) {
 void opcodes::LSR(InstructionContext ic) {
     // Pobierz wartość operandu
     u8 operand = ic.getValueFromAddress();
+
+    if(ic.mode == Accumulator)
+        operand = ic.value;
 
     // Ustaw flagę Carry na podstawie najmłodszego bitu
     bool carry = operand & Bit0;
@@ -837,7 +842,7 @@ void opcodes::LSR(InstructionContext ic) {
 
     // Jeśli operacja była bezpośrednio na akumulatorze, zaktualizuj A
     if (ic.mode == AddressingMode::Accumulator) {
-        ic.regs->A = result;
+        ic.regs->SetA(result);
     } else {
         // Zapisz wynik z powrotem do pamięci, jeśli operand był w pamięci
         ic.write(ic.value, result);
@@ -848,9 +853,8 @@ void opcodes::LSR(InstructionContext ic) {
 }
 
 void opcodes::PHA(InstructionContext ic) {
-    --ic.regs->S;
-
     ic.write(0x0100 + ic.regs->S, ic.regs->A);
+    --ic.regs->S;
 }
 
 void opcodes::JMP(InstructionContext ic) {
@@ -906,12 +910,13 @@ void opcodes::ADC(InstructionContext ic) {
     ic.setStatus(StatusFlag::Overflow, overflow);
 
     // Przypisz wynik do akumulatora (A) i ustaw flagi Z i N
-    ic.regs->A = static_cast<u8>(result);
+    ic.regs->SetA(static_cast<u8>(result));
     setZN(ic, ic.regs->A);
 }
 
 void opcodes::PLA(InstructionContext ic) {
-    ic.regs->A = ic.read(0x0100 + ic.regs->S++);
+    ic.regs->SetA(ic.read(0x100 + ic.regs->S++));
+    //ic.regs->A = ic.read(0x100 + ic.regs->S++);
 
     ++ic.regs->S;
 }
@@ -936,7 +941,8 @@ void opcodes::ROR(InstructionContext ic) {
 
     // Ustaw nową wartość w rejestrze A (jeśli dotyczy)
     if (ic.mode != AddressingMode::Immediate) {
-        ic.regs->A = result;  // Zaktualizuj rejestr A, jeśli nie jest to tryb Immediate
+        ic.regs->SetA(result);
+        //ic.regs->A = result;  // Zaktualizuj rejestr A, jeśli nie jest to tryb Immediate
     }
 
     // Ustaw flagi:
@@ -965,10 +971,11 @@ void opcodes::STA(InstructionContext ic) {
     // Pobierz wartość adresu, gdzie należy zapisać zawartość akumulatora
     u16 address = 0;
 
-    if(ic.mode != Absolute)
-        address = ic.getValueFromAddress(); // Adres jest przechowywany w value, może to być u16
-    else
-        address = ic.value;
+    // if(ic.mode != Absolute && ic.mode != AbsoluteIndexedY && ic.mode != IndexedIndirectY)
+    //     address = ic.getValueFromAddress(); // Adres jest przechowywany w value, może to być u16
+    // else
+    //     address = ic.value;
+    address = ic.value;
 
         // Zapisz wartość akumulatora do pamięci
     ic.write(address, ic.regs->A);
@@ -996,7 +1003,8 @@ void opcodes::DEY(InstructionContext ic) {
 }
 
 void opcodes::TXA(InstructionContext ic) {
-    ic.regs->A = ic.regs->X;
+    ic.regs->SetA(ic.regs->X);
+    //ic.regs->A = ic.regs->X;
     setZN(ic, ic.regs->A);
 }
 
@@ -1007,7 +1015,8 @@ void opcodes::BCC(InstructionContext ic) {
 }
 
 void opcodes::TYA(InstructionContext ic) {
-    ic.regs->A = ic.regs->Y;
+    ic.regs->SetA(ic.regs->Y);
+    //ic.regs->A = ic.regs->Y;
     setZN(ic, ic.regs->A);
 }
 
@@ -1031,7 +1040,11 @@ void opcodes::LDA(InstructionContext ic) {
     u8 value = ic.getValueFromAddress();
 
     // Załaduj wartość do akumulatora A
-    ic.regs->A = value;
+    //ic.regs->A = value;
+    ic.regs->SetA(value);
+
+    if(ic.regs->A == 32)
+        ic.regs->A = 32;
 
     // Ustaw flagi Z i N
     setZN(ic, ic.regs->A);
@@ -1219,7 +1232,8 @@ void opcodes::SBC(InstructionContext ic) {
     }
 
     // Zapisz wynik w rejestrze A
-    ic.regs->A = result;
+    ic.regs->SetA(result);
+    //ic.regs->A = result;
 }
 
 void opcodes::JNC(InstructionContext ic) {
