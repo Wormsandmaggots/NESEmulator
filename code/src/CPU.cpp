@@ -96,7 +96,6 @@ void CPU::execute(Instruction instruction) {
             std::cout << (int)instruction.cycles << std::endl;
         }
 
-        //19435
 
         ic.mem = mem;
         ic.regs = regs;
@@ -104,8 +103,8 @@ void CPU::execute(Instruction instruction) {
 
         regs->PC++;
 
-
-        if(currentInstruction == 43512)
+        //19793
+        if(currentInstruction == 43957)
             currentInstruction = 0;
 
         ic.value = fetch(ic.mode);

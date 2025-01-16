@@ -71,6 +71,9 @@ void Memory::write(u16 addr, u8 data) {
         }
     }
 
+    if(addr == 1959)
+        canWrite = true;
+
     if (canWrite)
         this->data[addr] = data;
 }

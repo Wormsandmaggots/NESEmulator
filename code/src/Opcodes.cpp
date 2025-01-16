@@ -931,22 +931,11 @@ void opcodes::ROR(InstructionContext ic) {
     // Pobierz wartość rejestru A
     u8 accumulator = ic.regs->A;
 
-    // Jeśli tryb to bezpośredni, zaktualizuj operand
-    if (ic.mode == AddressingMode::Immediate) {
-        operand = accumulator; // Dla trybu Immediate operujemy na A
-    }
-
     // Pobierz flagę Carry (C)
     bool carry = ic.getStatus(StatusFlag::Carry);
+    u8 result = (operand >> 1) | (carry << 7);  // Bit 7 = Carry, bit 0 zyskuje Carry
 
-    // Wykonaj przesunięcie w prawo
-    u8 result = (operand >> 1) | (carry ? Bit7 : 0);  // Bit 7 = Carry, bit 0 zyskuje Carry
-
-    // Ustaw nową wartość w rejestrze A (jeśli dotyczy)
-    if (ic.mode != AddressingMode::Immediate) {
-        ic.regs->SetA(result);
-        //ic.regs->A = result;  // Zaktualizuj rejestr A, jeśli nie jest to tryb Immediate
-    }
+    ic.write(ic.value, result);
 
     // Ustaw flagi:
     ic.setStatus(StatusFlag::Carry, (operand & Bit0) != 0); // Zaktualizuj Carry na podstawie bitu 0
