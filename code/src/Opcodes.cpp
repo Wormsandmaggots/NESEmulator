@@ -804,12 +804,14 @@ void opcodes::SEC(InstructionContext ic) {
 void opcodes::RTI(InstructionContext ic) {
     ++ic.regs->S;
 
-    u8 status = ic.read(ic.regs->S);
+    u8 status = ic.read(0x100 + ic.regs->S);
 
-    ic.regs->P = status & ~Break;  // Flaga B (Break) jest resetowana
+    ic.regs->P = (status & 0xef) | (ic.regs->P & 0x10) | 0x20;  // Flaga B (Break) jest resetowana
 
-    u8 lowByte = ic.read(ic.regs->S++);
-    u8 highByte = ic.read(ic.regs->S++);
+    ic.regs->S++;
+    u8 lowByte = ic.read(0x100 + ic.regs->S);
+    ic.regs->S++;
+    u8 highByte = ic.read(0x100 + ic.regs->S);
 
     ic.regs->PC = mergeToU16(lowByte, highByte);
 }
