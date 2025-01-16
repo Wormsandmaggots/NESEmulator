@@ -112,7 +112,9 @@ PPU::PPU(Memory* shared) {
                 break;
         }
 
-        return isIOReg(addr) ? std::optional(regs.latch) : std::nullopt;
+        const bool returnLatchCondition = isIOReg(addr) && addr != input::p1 && addr != input::p2;
+
+        return returnLatchCondition ? std::optional(regs.latch) : std::nullopt;
     });
 
     palette = {{

@@ -915,10 +915,11 @@ void opcodes::ADC(InstructionContext ic) {
 }
 
 void opcodes::PLA(InstructionContext ic) {
-    ic.regs->SetA(ic.read(0x100 + ic.regs->S++));
+    ic.regs->S++;
+    ic.regs->SetA(ic.read(0x100 + ic.regs->S));
     //ic.regs->A = ic.read(0x100 + ic.regs->S++);
 
-    ++ic.regs->S;
+    setZN(ic, ic.regs->A);
 }
 
 void opcodes::ROR(InstructionContext ic) {

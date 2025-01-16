@@ -47,16 +47,18 @@ void CPU::cleanup() {
 
 void CPU::execute(Instruction instruction) {
     if(executeNMI) {
+        WARNLOG("NMI executed");
         pushAddress(regs->PC);
-        pushStatus(false);
+        pushByte(regs->P | 0x20);
+        cycle += nes_cpu_cycle_t(7);
         regs->PC = mem->read(0xFFFA) | (mem->read(0xFFFB) << 8); // Skok do wektora NMI
         // Zresetuj flagę przerwań
-        regs->setStatus(InterruptDisable);
-        clearVBlankFlag();
+        //clearVBlankFlag();
 
         executeNMI = false;
     }
     else if(executeDMA) {
+        WARNLOG("EXECUTE OAMDMA");
         PPU::setOAMDMA(OMDDMAAddress);
         //_system->ppu()->oam_dma(_dma_addr);
 
@@ -94,16 +96,17 @@ void CPU::execute(Instruction instruction) {
             std::cout << (int)instruction.cycles << std::endl;
         }
 
-        //19345
-
-        if(currentInstruction == 19342)
-            currentInstruction = 0;
+        //19435
 
         ic.mem = mem;
         ic.regs = regs;
         ic.mode = instruction.mode;
 
         regs->PC++;
+
+
+        if(currentInstruction == 43514)
+            currentInstruction = 0;
 
         ic.value = fetch(ic.mode);
 
