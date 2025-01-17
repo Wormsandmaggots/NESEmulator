@@ -103,10 +103,8 @@ void CPU::execute(Instruction instruction) {
 
         regs->PC++;
 
-        //19793
-        //44002
-        //15661
-        if(currentInstruction == 50000)
+
+        if(currentInstruction == 43423)
             currentInstruction = 0;
 
         ic.value = fetch(ic.mode);

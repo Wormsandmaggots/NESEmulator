@@ -758,22 +758,23 @@ void opcodes::ROL(InstructionContext ic) {
     bool carryIn = ic.getStatus(StatusFlag::Carry);
 
     // Oblicz nowy wynik
-    u16 result = (operand << 1) | (carryIn ? 1 : 0);
+    u8 result = (operand << 1) | (carryIn ? 1 : 0);
 
     // Zapisz wynik
     if (ic.mode != AddressingMode::Accumulator) {
-        ic.write(ic.value, static_cast<u8>(result));
+        ic.write(ic.value, result);
     } else {
-        ic.regs->SetA(static_cast<u8>(result));
+        ic.regs->SetA(result);
         //ic.regs->A = static_cast<u8>(result);
     }
 
     // Ustaw flagę Carry na podstawie najbardziej znaczącego bitu operandu
-    ic.setStatus(StatusFlag::Carry, result & 0x100);
+    ic.setStatus(StatusFlag::Carry, operand & Bit7);
 
     // Ustaw flagi Zero i Negative na podstawie nowego wyniku
-    ic.setStatus(StatusFlag::Zero, (result & 0xFF) == 0);
-    ic.setStatus(StatusFlag::Negative, result & Bit7);
+    setZN(ic, result);
+    // ic.setStatus(StatusFlag::Zero, (result & 0xFF) == 0);
+    // ic.setStatus(StatusFlag::Negative, result & Bit7);
 }
 
 void opcodes::PLP(InstructionContext ic) {

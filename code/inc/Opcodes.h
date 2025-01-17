@@ -57,7 +57,8 @@ struct InstructionContext {
         return regs->getStatus(flag);
     }
 
-    u8 getValueFromAddress() const{ return read(value); }
+    //zmiana nazwy na coś bardziej suitable
+    u8 getValueFromAddress() const{ return mode == AddressingMode::Accumulator ? value : read(value); }
 
     void pushByte(uint8_t byte) const {
         // Zapisz bajt na stosie (dekrementacja SP)
