@@ -667,20 +667,20 @@ void opcodes::ORA(InstructionContext ic) {
 
 void opcodes::ASL(InstructionContext ic) {
     // Pobierz wartość (z akumulatora lub pamięci)
-    //const u8 operand = ic.get<u8>();
-    const u8 operand = ic.getValueFromAddress();
-    // Ustaw flagę Carry na podstawie bitu 7
-    ic.setStatus(Carry, operand & Bit7);
 
-    // Wykonaj przesunięcie w lewo
+    u16 operand = ic.getValueFromAddress();
+
+    if(ic.mode == Accumulator)
+        operand = ic.value;
+
     const u8 result = operand << 1;
 
-    // Zapisz wynik (do akumulatora lub pamięci, w zależności od kontekstu)
-    if (ic.mode == Accumulator) {
-        ic.regs->SetA(result);
-    } else {
-        ic.write(operand, result);
-    }
+    if(ic.mode == Accumulator)
+        ic.regs->A = result;
+    else
+        ic.write(operand, ic.regs->A);
+
+    ic.setStatus(Carry, operand & Bit7);
 
     // Ustaw flagi Z i N
     setZN(ic, result);
