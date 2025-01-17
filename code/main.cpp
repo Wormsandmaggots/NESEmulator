@@ -23,7 +23,7 @@ int main(int argc, char* argv[])
 
     PPU ppu(cpu.getMemory());
 
-    cartridge.loadToVRam(ppu.getVRam());
+    cartridge.loadToVRam(&ppu);
 
     Controller p1(cpu.getMemory(), input::p1, input::firstPlayerKeys);
     Controller p2(cpu.getMemory(), input::p2, input::secondPlayerKeys);

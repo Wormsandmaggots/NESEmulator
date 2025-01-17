@@ -15,6 +15,7 @@
 #include "Utils.h"
 #include "Memory.h"
 #include "NESHelpers.h"
+#include "PPU.h"
 
 bool Cartridge::load() {
     nesFile = new NESFile;
@@ -81,15 +82,20 @@ void Cartridge::loadToMemory(Memory* mem) const {
     }
 }
 
-void Cartridge::loadToVRam(u8 *vram) const {
-    switch(nesFile->mapper) {
-        case 0: {
-            std::copy_n(nesFile->chr_rom.data(), nesFile->chr_rom.size(), vram);
-            break;
-        }
-        default:
-            ERRORLOG(error::unsupportedMapper);
-    }
+void Cartridge::loadToVRam(PPU *ppu) const {
+    ppu->setMirroring(getMirroring());
+    ppu->writeVram(0x0, nesFile->chr_rom.data(), nesFile->chr_rom.size());
+}
+
+nes_mapper_flags Cartridge::getMirroring() const {
+    nes_mapper_flags flags = nes_mapper_flags_none;
+
+    if(nesFile->mirroring)
+        flags = nes_mapper_flags(flags | nes_mapper_flags_vertical_mirroring);
+    else
+        flags = nes_mapper_flags(flags | nes_mapper_flags_horizontal_mirroring);
+
+    return flags;
 }
 
 

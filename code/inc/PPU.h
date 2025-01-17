@@ -6,6 +6,7 @@
 #define PPU_H
 #include <array>
 
+#include "Cartridge.h"
 #include "Memory.h"
 #include "Types.h"
 #include "Settings.h"
@@ -25,9 +26,15 @@ public:
     std::vector<u8> getFrameBuffer() const;
     std::vector<u32> getFrame() const;
 
-    uint8_t *getVRam();
+    u8 readVram(u16 addr);
+    void writeVram(u16 addr, u8 value);
+    void writeVram(u16 addr, u8 *src, u16 src_size);
+
+    u8* getVRam();
 
     static std::function<void(u16)> setOAMDMA;
+
+    void setMirroring(nes_mapper_flags);
 private:
     ppu::Registers regs{};
 
@@ -53,6 +60,8 @@ private:
     nes_cycle_t _master_cycle;
     nes_ppu_cycle_t _scanline_cycle;
 
+    nes_mapper_flags mirroring;
+
     std::vector<u8> entireFrameBuffer;
     std::vector<u8> frameBuffer1;
     std::vector<u8> frameBuffer2;
@@ -77,6 +86,8 @@ private:
     void swap_buffer();
 
     bool is_ready() const { return _master_cycle > nes_ppu_cycle_t(29658); }
+
+    void redirectAddress(u16& address);
 
     //https://www.nesdev.org/wiki/PPU_registers
 

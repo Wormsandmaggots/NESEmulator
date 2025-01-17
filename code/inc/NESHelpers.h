@@ -15,6 +15,7 @@
 #include <SDL_keycode.h>
 
 
+class PPU;
 using namespace std::chrono;
 
 #define NES_CLOCK_HZ (21477272ll / 4)
@@ -169,7 +170,7 @@ namespace ppu {
         u16 V = 0;                 // Rejestr adresu (current VRAM address)
         u16 T = 0;                 // Rejestr adresu tymczasowego
         u8 X = 0;                  // Przesunięcie przesuwu poziomego
-        u8 W = 0;                  // Flaga przełączania adresu
+        u8 W = 0;                   // Flaga przełączania adresu
 
         u8* PPUControl = null;
         u8* PPUMask = null;
@@ -177,7 +178,6 @@ namespace ppu {
         u8* OAMAddr = null;
         u8* OAMData = null;
         u8* PPUScroll = null;
-        u8* PPUAddr = null;
         u8* PPUData = null;
         u8* OAMDMA = null;
 
@@ -291,10 +291,11 @@ namespace ppu {
             }
             else
             {
+                //problem ppuaddres jest u8 a próbuje zapisać do niego u16 co jest źle
                 // second write
                 // note that both PPUADDR(2006) and PPUSCROLL (2005) share the same _temp_ppu_addr
                 T = (T & 0xff00) | val;
-                (*PPUAddr) = T;
+                V = T;
             }
         }
 
@@ -316,12 +317,7 @@ namespace ppu {
             (*OAMAddr)++;
         }
 
-        void writePPUData(u8 val, Memory* mem) {
-            writeLatch(val);
-
-            mem->write((*PPUAddr), val);
-            (*PPUAddr) += ppuAddressIncValue();
-        }
+        void writePPUData(u8 val, PPU* ppu);
 
         void writeOAMDMA(u8 val);
 
@@ -346,29 +342,7 @@ namespace ppu {
             return val;
         }
 
-        u8 readPPUDATA(Memory* sharedMemory) {
-            uint8_t val = *PPUData;
-            uint8_t new_val = sharedMemory->read(*PPUAddr);
-
-            bool is_palette = ((*PPUAddr & 0xff00) == 0x3f00);
-            if (!protect)
-            {
-                // for palette - the read buf is updated with the mirrored nametable address
-                if (is_palette)
-                    *PPUData = sharedMemory->read(*PPUAddr - 0x1000);
-                else
-                    *PPUData = new_val;
-                (*PPUAddr) += ppuAddressIncValue();
-            }
-
-            writeLatch(val);
-
-            // palette reads returns the correct data immediately
-            if (is_palette)
-                return new_val;
-
-            return val;
-        }
+        u8 readPPUDATA(PPU* ppu);
     };
 }
 

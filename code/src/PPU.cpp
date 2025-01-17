@@ -7,6 +7,7 @@
 #include <cassert>
 #include <string.h>
 
+#include "Cartridge.h"
 #include "CPU.h"
 
 #define PPU_SCANLINE_CYCLE nes_ppu_cycle_t(341)
@@ -64,30 +65,30 @@ PPU::PPU(Memory* shared) {
                 if(!is_ready()) return false;
 
                 regs.writePPUCTRL(val);
-                break;
+                return false;
             case PPUMASKAddress:
                 regs.writePPUMASK(val);
-                break;
+                return false;
             case OAMADDRAddress:
                 regs.writeOAMADDR(val);
-                break;
+                return false;
             case OAMDATAAddress:
                 regs.writeOAMDATA(val);
-                break;
+                return false;
             case PPUSCROLLAddress:
                 if(!is_ready()) return false;
 
                 regs.writePPUSCROLL(val);
-                break;
+                return false;
             case PPUADDRAddress:
                 regs.writePPUAADDR(val);
-                break;
+                return false;
             case PPUDATAAddress:
-                regs.writePPUData(val, sharedMemory);
-                break;
+                regs.writePPUData(val, this);
+                return false;
             case OAMDMAAddress:
                 regs.writeOAMDMA(val);
-                break;
+                return false;
             default:
                 //do nothing
                 break;
@@ -106,7 +107,7 @@ PPU::PPU(Memory* shared) {
             case OAMDATAAddress:
                 return regs.readOAMDATA();
             case PPUDATAAddress:
-                return regs.readPPUDATA(sharedMemory);
+                return regs.readPPUDATA(this);
             default:
                 //do nothing
                 break;
@@ -148,7 +149,6 @@ void PPU::init(Memory* shared) {
 
     regs.OAMAddr = &shared->getReference(OAMADDRAddress);
     regs.OAMData = &shared->getReference(OAMDATAAddress);
-    regs.PPUAddr = &shared->getReference(PPUADDRAddress);
     regs.PPUControl = &shared->getReference(PPUCTRLAddress);
     regs.PPUData = &shared->getReference(PPUDATAAddress);
     regs.PPUMask = &shared->getReference(PPUMASKAddress);
@@ -190,8 +190,27 @@ std::vector<uint32_t> PPU::getFrame() const {
     return frame;
 }
 
+uint8_t PPU::readVram(uint16_t addr) {
+    redirectAddress(addr);
+    return vram[addr];
+}
+
+void PPU::writeVram(uint16_t addr, uint8_t value) {
+    redirectAddress(addr);
+    vram[addr] = value;
+}
+
+void PPU::writeVram(uint16_t addr, uint8_t *src, uint16_t src_size) {
+    redirectAddress(addr);
+    memcpy_s(vram.data() + addr, vRamSize - addr, src, src_size);
+}
+
 uint8_t *PPU::getVRam() {
     return vram.data();
+}
+
+void PPU::setMirroring(nes_mapper_flags flags) {
+    mirroring = nes_mapper_flags(flags & nes_mapper_flags_mirroring_mask);
 }
 
 void PPU::step(nes_cycle_t count) {
@@ -224,7 +243,7 @@ void PPU::step(nes_cycle_t count) {
 
                     if (regs.showBackground() || regs.showSprites())
                     {
-                        *regs.PPUAddr = regs.T;
+                        regs.V = regs.T;
                     }
                 }
                 else if(_scanline_cycle == nes_ppu_cycle_t(1)) {
@@ -252,28 +271,28 @@ void PPU::tilesPipeline() {
 
         if (_scanline_cycle == nes_ppu_cycle_t(256))
         {
-            if ((*regs.PPUAddr & 0x7000) != 0x7000)
+            if ((regs.V & 0x7000) != 0x7000)
             {
                 // Increase fine Y position (within tile)
-                *regs.PPUAddr += 0x1000;
+                regs.V += 0x1000;
             }
             else
             {
-                *regs.PPUAddr &= ~0x7000;
+                regs.V &= ~0x7000;
 
                 // == row 29?
-                if ((*regs.PPUAddr & 0x3e0) != 0x3a0)
+                if ((regs.V & 0x3e0) != 0x3a0)
                 {
                     // Increase coarse Y position (next tile)
-                    *regs.PPUAddr += 0x20;
+                    regs.V += 0x20;
                 }
                 else
                 {
                     // wrap around
-                    *regs.PPUAddr &= ~0x3e0;
+                    regs.V &= ~0x3e0;
 
                     // switch to another vertical name table
-                    *regs.PPUAddr ^= 0x0800;
+                    regs.V ^= 0x0800;
                 }
             }
         }
@@ -286,7 +305,7 @@ void PPU::tilesPipeline() {
             // This includes resetting horizontal name table (2000~2400, 2800~2c00)
             // NNYY YYYX XXXX
             //  ^      ^ ^^^^
-            *regs.PPUAddr = (*regs.PPUAddr & 0xfbe0) | (regs.T & ~0xfbe0);
+            regs.V = (regs.V & 0xfbe0) | (regs.T & ~0xfbe0);
             xOffset = 0;
         }
 
@@ -408,8 +427,8 @@ void PPU::fetchTile() {
     {
         // fetch nametable byte for current 8-pixel-tile
         // http://wiki.nesdev.com/w/index.php/PPU_nametables
-        uint16_t name_tbl_addr = (*regs.PPUAddr & 0xfff) | 0x2000;
-        tileIndex = vram[name_tbl_addr];
+        uint16_t name_tbl_addr = (regs.V & 0xfff) | 0x2000;
+        tileIndex = readVram(name_tbl_addr);
     }
     else if (data_access_cycle == nes_ppu_cycle_t(2))
     {
@@ -418,12 +437,12 @@ void PPU::fetchTile() {
         // the result color byte is 2-bit (bit 3/2) for each quadrant
         // http://wiki.nesdev.com/w/index.php/PPU_attribute_tables
         // http://wiki.nesdev.com/w/index.php/PPU_scrolling#Wrapping_around
-        uint8_t tile_column = *regs.PPUAddr & 0x1f;         // YY YYYX XXXX = 1 1111
-        uint8_t tile_row = (*regs.PPUAddr & 0x3e0) >> 5;    // YY YYYX XXXX = 11 1110 0000
+        uint8_t tile_column = regs.V & 0x1f;         // YY YYYX XXXX = 1 1111
+        uint8_t tile_row = (regs.V & 0x3e0) >> 5;    // YY YYYX XXXX = 11 1110 0000
         uint8_t tile_attr_column = (tile_column >> 2) & 0x7;
         uint8_t tile_attr_row = (tile_row >> 2) & 0x7;
-        uint16_t attr_tbl_addr = 0x23c0 | (*regs.PPUAddr & 0x0c00) | (tile_attr_row << 3) | tile_attr_column;
-        uint8_t color_byte = vram[attr_tbl_addr];
+        uint16_t attr_tbl_addr = 0x23c0 | (regs.V & 0x0c00) | (tile_attr_row << 3) | tile_attr_column;
+        uint8_t color_byte = readVram(attr_tbl_addr);
 
         // each quadrant has 2x2 tile and each row/column has 4 tiles, so divide by 2 (& 0x2 is faster)
         uint8_t _quadrant_id = (tile_row & 0x2) + ((tile_column & 0x2) >> 1);
@@ -494,15 +513,15 @@ void PPU::fetchTile() {
         }
 
         // Increment X position
-        if ((*regs.PPUAddr & 0x1f) == 0x1f)
+        if ((regs.V & 0x1f) == 0x1f)
         {
             // Wrap to the next name table
-            *regs.PPUAddr &= ~0x1f;
-            *regs.PPUAddr ^= 0x0400;
+            regs.V &= ~0x1f;
+            regs.V ^= 0x0400;
         }
         else
         {
-            *regs.PPUAddr++;
+            regs.V++;
         }
     }
 }
@@ -592,7 +611,7 @@ u8 PPU::read_pattern_table_column(bool sprite, u8 tile_index, u8 bitplane, u8 ti
     uint16_t tile_addr = sprite ? regs.spritePatternTableAddress() : regs.backgroundPatternTableAddress();
     tile_addr |= (tile_index << 4);
 
-    return vram[tile_addr | (bitplane << 3) | tile_row_index];
+    return readVram(tile_addr | (bitplane << 3) | tile_row_index);
 }
 
 uint8_t PPU::read_pattern_table_column_8x16_sprite(uint8_t tile_index, uint8_t bitplane, uint8_t tile_row_index) {
@@ -604,7 +623,7 @@ uint8_t PPU::read_pattern_table_column_8x16_sprite(uint8_t tile_index, uint8_t b
     // 8-f: bitplane 1 for top tile       --> tile row index 0-7
     // 10-17: bitplane 0 for bottom tile  --> tile row index 8-f
     // 18-1f: bitplane 1 for bottom tile  --> tile row index 8-f
-    return vram[tile_addr | (bitplane << 3) | (tile_row_index & 0x7) | ((tile_row_index & 0x8) << 1)];
+    return readVram(tile_addr | (bitplane << 3) | (tile_row_index & 0x7) | ((tile_row_index & 0x8) << 1));
 }
 
 u8 PPU::get_palette_color(bool is_background, uint8_t palette_index_4_bit) {
@@ -613,7 +632,7 @@ u8 PPU::get_palette_color(bool is_background, uint8_t palette_index_4_bit) {
         return (*sharedMemory)[0x3f00];
 
     uint16_t palette_addr = (is_background ? 0x3f00 : 0x3f10) | palette_index_4_bit;
-    return vram[palette_addr];
+    return readVram(palette_addr);
 }
 
 Sprite* PPU::getSprite(uint8_t sprite_id) const {
@@ -642,4 +661,30 @@ void PPU::swap_buffer() {
         entireFrameBuffer = frameBuffer2;
     else
         entireFrameBuffer = frameBuffer1;
+}
+
+void PPU::redirectAddress(uint16_t &addr) {
+    if ((addr & 0xff00) == 0x3f00)
+    {
+        // mirror of palette table every 0x20 bytes
+        addr &= 0xff1f;
+
+        // mirror special case 0x3f10 = 0x3f00, 0x3f14 = 0x3f04, ...
+        if ((addr & 0xfff3) == 0x3f10)
+            addr &= 0x3f0f;
+    }
+    else if ((addr & 0xf000) == 0x2000)
+    {
+        // name table mirroring
+        if (mirroring == nes_mapper_flags_vertical_mirroring)
+            addr &= 0xf7ff;     // $2000=$2800, $2400=$2c00
+        else if (mirroring == nes_mapper_flags_horizontal_mirroring)
+            addr &= 0xfbff;     // $2000=$2400, $2800=$2c00
+        else assert(!"Unsupported mirroring modes");
+    }
+    else if (addr >= 0x3000)
+    {
+        // 0x3000~0x3f00 mirrors to 0x2000~0x2f00
+        addr -= 0x1000;
+    }
 }

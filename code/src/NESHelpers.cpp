@@ -4,6 +4,7 @@
 #include "NESHelpers.h"
 
 #include "CPU.h"
+#include "PPU.h"
 
 bool opcodes::isBranchInstruction(const uint8_t opcode) {
     return opcode == 0x10 || // BPL
@@ -42,6 +43,39 @@ bool opcodes::i8AddressingMode(const AddressingMode addressingMode) {
     return addressingMode == AddressingMode::Relative;
 }
 
+void ppu::Registers::writePPUData(uint8_t val, PPU *ppu) {
+    writeLatch(val);
+
+    //tutaj zapis powinien iść do vramu
+    ppu->writeVram(V, val);
+    //mem->write(V, val);
+    V += ppuAddressIncValue();
+}
+
 void ppu::Registers::writeOAMDMA(uint8_t val) {
     CPU::setDMA((uint16_t(val) << 8));
+}
+
+uint8_t ppu::Registers::readPPUDATA(PPU *ppu) {
+    uint8_t val = *PPUData;
+    uint8_t new_val = ppu->readVram(V);
+
+    bool is_palette = ((V & 0xff00) == 0x3f00);
+    if (!protect)
+    {
+        // for palette - the read buf is updated with the mirrored nametable address
+        if (is_palette)
+            *PPUData = ppu->readVram(V - 0x1000);
+        else
+            *PPUData = new_val;
+        V += ppuAddressIncValue();
+    }
+
+    writeLatch(val);
+
+    // palette reads returns the correct data immediately
+    if (is_palette)
+        return new_val;
+
+    return val;
 }

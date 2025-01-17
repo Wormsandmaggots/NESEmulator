@@ -9,7 +9,23 @@
 
 #include "Types.h"
 
+class PPU;
 class Memory;
+
+enum nes_mapper_flags : u8
+{
+    nes_mapper_flags_none = 0,
+
+    nes_mapper_flags_mirroring_mask = 0x3,
+
+    // A, B
+    // A, B
+    nes_mapper_flags_vertical_mirroring = 0x2,
+
+    // A, A
+    // B, B
+    nes_mapper_flags_horizontal_mirroring = 0x3,
+};
 
 struct FileHeader
 {
@@ -40,7 +56,9 @@ public:
 
     const NESFile* getNESFile() const;
     void loadToMemory(Memory* mem) const;
-    void loadToVRam(u8* vram) const;
+    void loadToVRam(PPU* ppu) const;
+
+    nes_mapper_flags getMirroring() const;
 
 private:
     NESFile* nesFile = null;

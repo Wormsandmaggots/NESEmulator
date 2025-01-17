@@ -64,15 +64,15 @@ void Memory::write(u16 addr, u8 data) {
 
     redirect_addr(addr);
 
+    if(addr == 0)
+        addr = 0;
+
     bool canWrite = true;
     for (const auto& func: beforeWrite) {
         if(!func(addr, data)) {
             canWrite = false;
         }
     }
-
-    if(addr == 1959)
-        canWrite = true;
 
     if (canWrite)
         this->data[addr] = data;
