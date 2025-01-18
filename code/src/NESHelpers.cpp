@@ -56,6 +56,27 @@ void ppu::Registers::writeOAMDMA(uint8_t val) {
     CPU::setDMA((uint16_t(val) << 8));
 }
 
+uint8_t ppu::Registers::readPPUSTATUS() {
+    u8 status = latch & 0x1f;
+
+    if(getSprite0Hit())
+        status |= Bit6;
+
+    if(getSpriteOverflow())
+        status |= Bit5;
+
+    if(getVblankFlag())
+        status |= Bit7;
+
+    if(!protect) {
+        setVblankFlag(false);
+        W = false;
+        writeLatch(status);
+    }
+
+    return status;
+}
+
 uint8_t ppu::Registers::readPPUDATA(PPU *ppu) {
     uint8_t val = *PPUData;
     uint8_t new_val = ppu->readVram(V);

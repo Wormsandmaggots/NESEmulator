@@ -82,7 +82,9 @@ void CPU::execute(Instruction instruction) {
 
         if(instruction.opcodeAddress != 173 && instruction.opcodeAddress != 16 && instruction.opcodeAddress != 76) {
             currentInstruction++;
-            INFOLOG(std::to_string(currentInstruction) + ". " + opcodes::Names[instruction.opcodeAddress] +  " " + std::to_string(instruction.opcodeAddress));
+            INFOLOG(
+                std::to_string(currentInstruction) + ". " + opcodes::Names[instruction.opcodeAddress] + " " + std::
+                to_string(instruction.opcodeAddress));
         }
         else {
             currentInstruction = currentInstruction;
@@ -92,19 +94,16 @@ void CPU::execute(Instruction instruction) {
             currentInstruction = currentInstruction;
         }
 
-        if(instruction.opcodeAddress == 169) {
-            std::cout << (int)instruction.cycles << std::endl;
-        }
-
-
         ic.mem = mem;
         ic.regs = regs;
         ic.mode = instruction.mode;
 
         regs->PC++;
 
-
-        if(currentInstruction == 43423)
+        //źle odczytuje PPUSTATUS
+        //sprite0hit źle ustawiony
+        //nigdy nie ustawia sprite0hit
+        if(currentInstruction == 150249)
             currentInstruction = 0;
 
         ic.value = fetch(ic.mode);

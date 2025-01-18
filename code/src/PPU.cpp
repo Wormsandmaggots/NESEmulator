@@ -239,7 +239,7 @@ void PPU::step(nes_cycle_t count) {
         else {
             if(scanline == 261) {
                 if(_scanline_cycle == nes_ppu_cycle_t(0)) {
-                    regs.setVblankFlag(true);
+                    regs.setVblankFlag(false);
 
                     if (regs.showBackground() || regs.showSprites())
                     {
@@ -383,7 +383,8 @@ void PPU::spritesPipeline() {
         else
         {
             // odd cycle - read from primary OAM
-            lastSpriteY = getSprite(sprite_id)->y;
+            Sprite* sprite = getSprite(sprite_id);
+            lastSpriteY = sprite->y;
         }
     }
     else if (_scanline_cycle < nes_ppu_cycle_t(321))
@@ -574,7 +575,7 @@ void PPU::fetch_sprite(uint8_t sprite_id) {
         else
             frame_addr += 7 - i; // high -> low as usual
 
-        if (frame_addr >= sizeof(frameBuffer1))
+        if (frame_addr >= frameBuffer1.size())
         {
             // part of the sprite might be over
             continue;
@@ -636,7 +637,7 @@ u8 PPU::get_palette_color(bool is_background, uint8_t palette_index_4_bit) {
 }
 
 Sprite* PPU::getSprite(uint8_t sprite_id) const {
-    return reinterpret_cast<Sprite *>(regs.oam[sprite_id]);
+    return &((Sprite *)regs.oam.data())[sprite_id];;
 }
 
 void PPU::step_ppu(nes_ppu_cycle_t count) {

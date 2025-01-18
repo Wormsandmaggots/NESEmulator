@@ -186,6 +186,10 @@ namespace ppu {
         bool protect = false;
         bool maskOAMRead = false;
 
+        bool spriteOverflow = false;
+        bool vblank = false;
+        bool sprite0Hit = false;
+
         std::vector<u8> oam;
 
         bool showBackground() const {
@@ -217,21 +221,29 @@ namespace ppu {
         }
 
         void setSpriteOverflow(bool val) {
+            spriteOverflow = val;
             if(val)
                 (*PPUStatus) |= Bit5;
             else
                 (*PPUStatus) &= ~Bit5;
         }
 
+        bool getSpriteOverflow() {
+            return spriteOverflow;
+            //return (*PPUStatus) & Bit5;
+        }
+
         bool use8x16Sprites() {
             return (*PPUControl) & Bit5;
         }
 
-        bool sprite0Hit() {
-            return (*PPUStatus) & Bit6;
+        bool getSprite0Hit() {
+            return sprite0Hit;
+            //return (*PPUStatus) & Bit6;
         }
 
         void setSprite0Hit(bool val) {
+            sprite0Hit = val;
             if(val)
                 (*PPUStatus) |= Bit6;
             else
@@ -239,10 +251,16 @@ namespace ppu {
         }
 
         void setVblankFlag(bool val) {
+            vblank = val;
+
             if(val)
                 (*PPUStatus) |= Bit7;
             else
                 (*PPUStatus) &= ~Bit7;
+        }
+
+        bool getVblankFlag() {
+            return vblank;
         }
 
         void writeLatch(u8 val) {
@@ -321,17 +339,7 @@ namespace ppu {
 
         void writeOAMDMA(u8 val);
 
-        u8 readPPUSTATUS() {
-            u8 status = (*PPUStatus);
-
-            if(!protect) {
-                setVblankFlag(false);
-                W = false;
-                writeLatch(status);
-            }
-
-            return status;
-        }
+        u8 readPPUSTATUS();
 
         u8 readOAMDATA() {
             if (maskOAMRead)
