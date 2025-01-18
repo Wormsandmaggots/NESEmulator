@@ -494,7 +494,7 @@ void initOpcodes() {
         "STX",
         ILLEGAL_NAME,
         "TYA",
-        "LDA",
+        "STA",
         "TXS",
         ILLEGAL_NAME,
         ILLEGAL_NAME,

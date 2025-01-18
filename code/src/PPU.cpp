@@ -503,13 +503,20 @@ void PPU::fetchTile() {
 
             _pixel_cycle[i] = get_palette_color(/* is_background = */ true, color_4_bit);
 
-            uint16_t frame_addr = uint16_t(cur_scanline) * resolution.x + xOffset++;
+            uint16_t frame_addr = u16(cur_scanline) * resolution.x + xOffset++;
+            if(cur_scanline == 30)
+                cur_scanline = 30;
+            if(frame_addr == 7700)
+                tile_palette_bit01 = 1;
             if (frame_addr >= frameBuffer1.size())
                 continue;
             entireFrameBuffer[frame_addr] = _pixel_cycle[i];
 
             // record the palette index just for sprite 0 hit detection
             // the detection use palette 0 instead of actual color
+            if(frame_addr == 7700)
+                tile_palette_bit01 = 1;
+
             frameBufferBG[frame_addr] = tile_palette_bit01;
         }
 
@@ -630,7 +637,7 @@ uint8_t PPU::read_pattern_table_column_8x16_sprite(uint8_t tile_index, uint8_t b
 u8 PPU::get_palette_color(bool is_background, uint8_t palette_index_4_bit) {
     // There is only one universal backdrop color doesn't matter which background it is
     if ((palette_index_4_bit & 0x3) == 0)
-        return (*sharedMemory)[0x3f00];
+        return readVram(0x3f00);
 
     uint16_t palette_addr = (is_background ? 0x3f00 : 0x3f10) | palette_index_4_bit;
     return readVram(palette_addr);

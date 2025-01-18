@@ -103,7 +103,9 @@ void CPU::execute(Instruction instruction) {
         //źle odczytuje PPUSTATUS
         //sprite0hit źle ustawiony
         //nigdy nie ustawia sprite0hit
-        if(currentInstruction == 150249)
+        //framebuffer_bg jest źle wypełniane
+        //150249
+        if(currentInstruction == 137329)
             currentInstruction = 0;
 
         ic.value = fetch(ic.mode);
