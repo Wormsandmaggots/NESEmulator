@@ -105,18 +105,14 @@ void CPU::execute(Instruction instruction) {
         regs->PC++;
 
         //138887 -> źle ładuje A
-        //128107 -> za dużo cykli
-        if(currentInstruction == 128107)
+        if(currentInstruction == 130797)
             currentInstruction = 0;
 
         ic.value = fetch(ic.mode);
 
         instruction(ic);
 
-        if(hasCrossedPage)
-            cycle += nes_cpu_cycle_t(instruction.getCycles(ic) + 1);
-        else
-            cycle += nes_cpu_cycle_t(instruction.getCycles(ic));
+        cycle += nes_cpu_cycle_t(instruction.getCycles(ic, hasCrossedPage));
     }
 }
 
