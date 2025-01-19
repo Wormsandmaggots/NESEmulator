@@ -265,7 +265,7 @@ void PPU::tilesPipeline() {
     if (_scanline_cycle == nes_ppu_cycle_t(0))
     {
     }
-    else if (_scanline_cycle == nes_ppu_cycle_t(256))
+    else if (_scanline_cycle < nes_ppu_cycle_t(257))
     {
         fetchTile();
 
@@ -506,16 +506,14 @@ void PPU::fetchTile() {
             uint16_t frame_addr = u16(cur_scanline) * resolution.x + xOffset++;
             if(cur_scanline == 30)
                 cur_scanline = 30;
-            if(frame_addr == 7700)
-                tile_palette_bit01 = 1;
             if (frame_addr >= frameBuffer1.size())
                 continue;
             entireFrameBuffer[frame_addr] = _pixel_cycle[i];
 
             // record the palette index just for sprite 0 hit detection
             // the detection use palette 0 instead of actual color
-            if(frame_addr == 7700)
-                tile_palette_bit01 = 1;
+            if(frame_addr == 7770)
+                frame_addr = 7700;
 
             frameBufferBG[frame_addr] = tile_palette_bit01;
         }
