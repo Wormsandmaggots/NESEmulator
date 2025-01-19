@@ -80,7 +80,11 @@ void CPU::execute(Instruction instruction) {
 
         InstructionContext ic;
 
-        if(instruction.opcodeAddress != 173 && instruction.opcodeAddress != 16 && instruction.opcodeAddress != 76) {
+        if(instruction.opcodeAddress != 173 &&
+            instruction.opcodeAddress != 16 &&
+            instruction.opcodeAddress != 76 &&
+            instruction.opcodeAddress != 41 &&
+            instruction.opcodeAddress != 240) {
             currentInstruction++;
             INFOLOG(
                 std::to_string(currentInstruction) + ". " + opcodes::Names[instruction.opcodeAddress] + " " + std::
@@ -100,19 +104,19 @@ void CPU::execute(Instruction instruction) {
 
         regs->PC++;
 
-        //źle odczytuje PPUSTATUS
-        //sprite0hit źle ustawiony
-        //nigdy nie ustawia sprite0hit
-        //framebuffer_bg jest źle wypełniane
-        //150249
-        if(currentInstruction == 137329)
+        //138887 -> źle ładuje A
+        //128107 -> za dużo cykli
+        if(currentInstruction == 128107)
             currentInstruction = 0;
 
         ic.value = fetch(ic.mode);
 
         instruction(ic);
 
-        cycle += nes_cpu_cycle_t(instruction.getCycles(ic));
+        if(hasCrossedPage)
+            cycle += nes_cpu_cycle_t(instruction.getCycles(ic) + 1);
+        else
+            cycle += nes_cpu_cycle_t(instruction.getCycles(ic));
     }
 }
 
@@ -149,14 +153,18 @@ u16 CPU::fetchAbsolute() const {
     return address;
 }
 
-u16 CPU::fetchAbsoluteX() const {
-    const u16 address = (fetchAbsolute() + regs->X);
-    return address;
+u16 CPU::fetchAbsoluteX() {
+    u16 address = fetchAbsolute();
+    u16 newAddress = address + regs->X;
+    hasCrossedPage = ((address & 0xff00) != (newAddress & 0xff00));
+    return newAddress;
 }
 
-u16 CPU::fetchAbsoluteY() const {
-    const u16 address = (fetchAbsolute() + regs->Y);
-    return address;
+u16 CPU::fetchAbsoluteY() {
+    u16 address = fetchAbsolute();
+    u16 newAddress = address + regs->Y;
+    hasCrossedPage = ((address & 0xff00) != (newAddress & 0xff00));
+    return newAddress;
 }
 
 u16 CPU::fetchIndirect() const {
@@ -179,13 +187,14 @@ u16 CPU::fetchIndirectIndexedX() const {
     return val;
 }
 
-u16 CPU::fetchIndirectIndexedY() const {
+u16 CPU::fetchIndirectIndexedY() {
     // const u8 pointer = (*mem)[regs->PC++];
     // const u16 address = ((*mem)[pointer] | ((*mem)[(pointer + 1) & 0xFF] << 8)) + regs->Y;
     // return (*mem)[address];
     const u8 pointer = (*mem)[regs->PC++];
     u16 addr = (*mem)[pointer] + (static_cast<u16>((*mem)[(pointer + 1) & 0xff]) << 8);
     u16 newAddr = addr + regs->Y;
+    hasCrossedPage = ((addr & 0xff00) != (newAddr & 0xff00));
     return newAddr;
 }
 
@@ -261,7 +270,8 @@ void CPU::pushByte(uint8_t byte) {
     regs->S--;
 }
 
-u16 CPU::fetch(AddressingMode addressing_mode) const {
+u16 CPU::fetch(AddressingMode addressing_mode) {
+    hasCrossedPage = false;
     switch(addressing_mode) {
         case AddressingMode::Implicit:
             return fetchImplicit();

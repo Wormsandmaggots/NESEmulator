@@ -114,21 +114,11 @@ struct Instruction {
         if(cycles <= illegalCycles)
             return cycles;
 
-        if(mode == AbsoluteIndexedX || mode == AbsoluteIndexedY) {
-            const u16 baseAddress = ic.value;
-            const u8 offset = mode == AbsoluteIndexedX ? ic.regs->X : ic.regs->Y;
-
-            if (hasPageCrossed(baseAddress, offset)) {
-                currentCycles+=1;
-            }
-        }
-
         if(isBranchInstruction(opcodeAddress) && branchConditionMet(opcodeAddress, *ic.regs)) {
             currentCycles+=1;
 
-            if(hasPageCrossed(ic.regs->PC, ic.getValueFromAddress())) {
+            if((ic.regs->PC & 0xff00) != ((ic.regs->PC - (i8)ic.getValueFromAddress()) & 0xff00))
                 currentCycles+=1;
-            }
         }
 
         return currentCycles;

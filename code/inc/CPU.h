@@ -35,7 +35,7 @@ public:
 
     Memory* getMemory() const;
     Registers* getRegisters() const;
-    u16 fetch(AddressingMode addressing_mode) const;
+    u16 fetch(AddressingMode addressing_mode);
     void step(nes_cycle_t new_count);
 
     static void setNMI();
@@ -53,6 +53,8 @@ private:
 
     nes_cycle_t cycle;
 
+    bool hasCrossedPage = false;
+
     static u16 OMDDMAAddress;
 
     u16 fetchImmediate() const;
@@ -60,10 +62,10 @@ private:
     u16 fetchZeroPageX() const;
     u16 fetchZeroPageY() const;
     u16 fetchAbsolute() const;
-    u16 fetchAbsoluteX() const;
-    u16 fetchAbsoluteY() const;
+    u16 fetchAbsoluteX();
+    u16 fetchAbsoluteY();
     u16 fetchIndirectIndexedX() const;
-    u16 fetchIndirectIndexedY() const;
+    u16 fetchIndirectIndexedY();
     u16 fetchAccumulator() const;
     u16 fetchImplicit() const;
 
