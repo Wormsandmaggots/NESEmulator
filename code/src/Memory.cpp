@@ -64,8 +64,8 @@ void Memory::write(u16 addr, u8 data) {
 
     redirect_addr(addr);
 
-    if(addr == 8194)
-        addr = 8194;
+    if(addr == 48)
+        addr = 48;
 
     bool canWrite = true;
     for (const auto& func: beforeWrite) {

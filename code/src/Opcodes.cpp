@@ -929,14 +929,14 @@ void opcodes::ROR(InstructionContext& ic) {
     // Pobierz operand (jeśli dotyczy)
     u8 operand = ic.getValueFromAddress();
 
-    // Pobierz wartość rejestru A
-    u8 accumulator = ic.regs->A;
-
     // Pobierz flagę Carry (C)
-    bool carry = ic.getStatus(StatusFlag::Carry);
+    u8 carry = ic.regs->P & StatusFlag::Carry;
     u8 result = (operand >> 1) | (carry << 7);  // Bit 7 = Carry, bit 0 zyskuje Carry
 
-    ic.write(ic.value, result);
+    if(ic.mode == Accumulator)
+        ic.regs->A = result;
+    else
+        ic.write(ic.value, result);
 
     // Ustaw flagi:
     ic.setStatus(StatusFlag::Carry, (operand & Bit0) != 0); // Zaktualizuj Carry na podstawie bitu 0

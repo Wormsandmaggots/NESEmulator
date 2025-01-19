@@ -104,8 +104,9 @@ void CPU::execute(Instruction instruction) {
 
         regs->PC++;
 
-        //138887 -> źle ładuje A
-        if(currentInstruction == 130797)
+        //138887 -> źle ładuje A -> LDA181
+        //137760. ROR 106 zapisuje pod 48 złą wartość
+        if(currentInstruction == 137760)
             currentInstruction = 0;
 
         ic.value = fetch(ic.mode);
