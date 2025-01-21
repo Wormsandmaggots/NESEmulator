@@ -156,7 +156,8 @@ void PPU::init(Memory* shared) {
     regs.PPUStatus = &shared->getReference(PPUSTATUSAddress);
     regs.OAMDMA = &shared->getReference(OAMDMAAddress);
 
-    entireFrameBuffer.resize(resolution.x * resolution.y);
+    //entireFrameBuffer.resize(resolution.x * resolution.y);
+    entireFrameBuffer = frameBuffer1.data();
     frameBuffer1.resize(resolution.x * resolution.y);
     frameBuffer2.resize(resolution.x * resolution.y);
     frameBufferBG.resize(resolution.x * resolution.y);
@@ -171,7 +172,7 @@ void PPU::init(Memory* shared) {
 }
 
 std::vector<u8> PPU::getFrameBuffer() const {
-    if(entireFrameBuffer == frameBuffer1)
+    if(entireFrameBuffer == frameBuffer1.data())
         return frameBuffer2;
 
     return frameBuffer1;
@@ -184,6 +185,9 @@ std::vector<uint32_t> PPU::getFrame() const {
     frame.resize(frameBuffer.size());
     for (int i = 0; i < frameBuffer.size(); ++i) {
         Color c = palette[frameBuffer[i] & 0xff];
+        if(c.r != 128)
+            c.r = c.r;
+
         frame[i] = c.makeu32();
     }
 
@@ -663,10 +667,10 @@ void PPU::step_ppu(nes_ppu_cycle_t count) {
 }
 
 void PPU::swap_buffer() {
-    if (entireFrameBuffer == frameBuffer1)
-        entireFrameBuffer = frameBuffer2;
+    if (entireFrameBuffer == frameBuffer1.data())
+        entireFrameBuffer = frameBuffer2.data();
     else
-        entireFrameBuffer = frameBuffer1;
+        entireFrameBuffer = frameBuffer1.data();
 }
 
 void PPU::redirectAddress(uint16_t &addr) {

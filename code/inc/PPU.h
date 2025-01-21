@@ -42,7 +42,6 @@ private:
 
     //Memory oam = Memory(oamSize);
     std::vector<u8> vram;
-    std::vector<u8> frameBuffer{};
     std::array<Color, paletteSize> palette;
 
     u16 scanline = 0;
@@ -62,7 +61,7 @@ private:
 
     nes_mapper_flags mirroring;
 
-    std::vector<u8> entireFrameBuffer;
+    u8* entireFrameBuffer;
     std::vector<u8> frameBuffer1;
     std::vector<u8> frameBuffer2;
     std::vector<u8> frameBufferBG;

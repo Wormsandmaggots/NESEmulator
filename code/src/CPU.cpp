@@ -80,23 +80,23 @@ void CPU::execute(Instruction instruction) {
 
         InstructionContext ic;
 
-        if(instruction.opcodeAddress != 173 &&
-            instruction.opcodeAddress != 16 &&
-            instruction.opcodeAddress != 76 &&
-            instruction.opcodeAddress != 41 &&
-            instruction.opcodeAddress != 240) {
-            currentInstruction++;
-            INFOLOG(
-                std::to_string(currentInstruction) + ". " + opcodes::Names[instruction.opcodeAddress] + " " + std::
-                to_string(instruction.opcodeAddress));
-        }
-        else {
-            currentInstruction = currentInstruction;
-        }
-
-        if(instruction.opcodeAddress != 173 && instruction.opcodeAddress != 16 && regs->A == 32) {
-            currentInstruction = currentInstruction;
-        }
+        // if(instruction.opcodeAddress != 173 &&
+        //     instruction.opcodeAddress != 16 &&
+        //     instruction.opcodeAddress != 76 &&
+        //     instruction.opcodeAddress != 41 &&
+        //     instruction.opcodeAddress != 240) {
+        //     currentInstruction++;
+        //     INFOLOG(
+        //         std::to_string(currentInstruction) + ". " + opcodes::Names[instruction.opcodeAddress] + " " + std::
+        //         to_string(instruction.opcodeAddress));
+        // }
+        // else {
+        //     currentInstruction = currentInstruction;
+        // }
+        //
+        // if(instruction.opcodeAddress != 173 && instruction.opcodeAddress != 16 && regs->A == 32) {
+        //     currentInstruction = currentInstruction;
+        // }
 
         ic.mem = mem;
         ic.regs = regs;
@@ -104,9 +104,7 @@ void CPU::execute(Instruction instruction) {
 
         regs->PC++;
 
-        //138887 -> źle ładuje A -> LDA181
-        //137760. ROR 106 zapisuje pod 48 złą wartość
-        if(currentInstruction == 137760)
+        if(currentInstruction == 240000)
             currentInstruction = 0;
 
         ic.value = fetch(ic.mode);
