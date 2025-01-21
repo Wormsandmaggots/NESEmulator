@@ -46,7 +46,7 @@ struct Color {
     u8 b = 0;
 
     u32 makeu32() const {
-        return (r << 16) | (g << 8) | b;
+        return (r << 24) | (g << 16) | (b << 8);
     }
 };
 

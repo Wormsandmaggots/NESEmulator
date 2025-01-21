@@ -185,10 +185,9 @@ std::vector<uint32_t> PPU::getFrame() const {
     frame.resize(frameBuffer.size());
     for (int i = 0; i < frameBuffer.size(); ++i) {
         Color c = palette[frameBuffer[i] & 0xff];
-        if(c.r != 128)
-            c.r = c.r;
+        u32 coloru32 = c.makeu32();
 
-        frame[i] = c.makeu32();
+        frame[i] = coloru32;
     }
 
     return frame;
