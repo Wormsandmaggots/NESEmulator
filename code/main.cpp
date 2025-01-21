@@ -28,7 +28,7 @@ int main(int argc, char* argv[])
     Controller p1(cpu.getMemory(), input::p1, input::firstPlayerKeys);
     Controller p2(cpu.getMemory(), input::p2, input::secondPlayerKeys);
 
-    if (SDL_Init(SDL_INIT_VIDEO) != 0)
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS) != 0)
     {
         return 1;
     }
@@ -86,8 +86,8 @@ int main(int argc, char* argv[])
                 INFOLOG(cpu.getRegisters()->toString());
             }
 
-            p1.updateFromSDL(event);
-            p2.updateFromSDL(event);
+            // p1.updateFromSDL(event);
+            // p2.updateFromSDL(event);
         }
 
         u64 cur_counter = SDL_GetPerformanceCounter();

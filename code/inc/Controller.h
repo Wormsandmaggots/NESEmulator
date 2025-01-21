@@ -5,9 +5,8 @@
 #ifndef CONTROLLER_H
 #define CONTROLLER_H
 
-#include <array>
 #include <SDL_events.h>
-#include <unordered_map>
+#include <vector>
 
 #include "Types.h"
 
@@ -16,7 +15,7 @@ class Memory;
 
 class Controller {
 public:
-    Controller(Memory* mem, u16 relatedMemoryAddress, const SDL_Keycode* keys);
+    Controller(Memory* mem, u16 relatedMemoryAddress, const SDL_Scancode* keys);
     void setButtonState(SDL_Keycode button, bool pressed);
     void setButtonState(u8 val);
     u8 getButtonState();
@@ -26,11 +25,11 @@ public:
 
 private:
     Memory* sharedMemory = null;
-    std::unordered_map<SDL_Scancode, bool> keymap;
+    std::vector<std::pair<SDL_Scancode, bool>> keymap;
     u16 controllerInputMemoryAddress = 0;
     u8 keysValue = 0;
     u8 buttonID = 0;
-    bool strobeFlag = false;         // Flaga strobu
+    static bool strobeFlag;         // Flaga strobu
 
     void fetchInput();
 };

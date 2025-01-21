@@ -357,8 +357,8 @@ namespace ppu {
 namespace input {
 
     enum class Button : u8 {
-        left = 0x1,
-        right = 0x2,
+        right = 0x1,
+        left = 0x2,
         down = 0x4,
         up = 0x8,
         select = 0x10,
@@ -369,26 +369,26 @@ namespace input {
     constexpr u16 p1 = 0x4016;
     constexpr u16 p2 = 0x4017;
 
-    constexpr SDL_Keycode firstPlayerKeys[] = {
-        SDLK_a,
-        SDLK_d,
-        SDLK_s,
-        SDLK_w,
-        SDLK_LSHIFT,
-        SDLK_LCTRL,
-        SDLK_g,
-        SDLK_h
+    constexpr SDL_Scancode firstPlayerKeys[] = {
+        SDL_SCANCODE_D,
+        SDL_SCANCODE_A,
+        SDL_SCANCODE_S,
+        SDL_SCANCODE_W,
+        SDL_SCANCODE_LSHIFT,
+        SDL_SCANCODE_LCTRL,
+        SDL_SCANCODE_G,
+        SDL_SCANCODE_H
     };
 
-    constexpr SDL_Keycode secondPlayerKeys[] = {
-        SDLK_RIGHT,
-        SDLK_UP,
-        SDLK_DOWN,
-        SDLK_LEFT,
-        SDLK_RSHIFT,
-        SDLK_KP_ENTER,
-        SDLK_k,
-        SDLK_l
+    constexpr SDL_Scancode secondPlayerKeys[] = {
+        SDL_SCANCODE_RIGHT,
+        SDL_SCANCODE_LEFT,
+        SDL_SCANCODE_DOWN,
+        SDL_SCANCODE_UP,
+        SDL_SCANCODE_RSHIFT,
+        SDL_SCANCODE_KP_ENTER,
+        SDL_SCANCODE_K,
+        SDL_SCANCODE_L
     };
 }
 

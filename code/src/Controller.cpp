@@ -6,20 +6,22 @@
 #include "Memory.h"
 #include "NESHelpers.h"
 
-Controller::Controller(Memory *mem, uint16_t relatedMemoryAddress, const SDL_Keycode* keys) {
+bool Controller::strobeFlag = false;
+
+Controller::Controller(Memory *mem, uint16_t relatedMemoryAddress, const SDL_Scancode* keys) {
     sharedMemory = mem;
 
     controllerInputMemoryAddress = relatedMemoryAddress;
 
     for(int i = 0; i < 8; i++) {
-        keymap.insert({SDL_GetScancodeFromKey(keys[i]), false});
+        keymap.emplace_back(keys[i], false);
     }
 
     mem->beforeWrite.push_back([this](u16 addr, u8& val) -> bool {
         if(addr == controllerInputMemoryAddress) {
             bool prevStrobe = strobeFlag;
-            strobeFlag = (val & Bit1);
-            if(!prevStrobe && !strobeFlag) {
+            strobeFlag = (val & Bit0);
+            if(prevStrobe && !strobeFlag) {
                 fetchInput();
             }
 
@@ -32,9 +34,17 @@ Controller::Controller(Memory *mem, uint16_t relatedMemoryAddress, const SDL_Key
     mem->beforeRead.push_back([this](u16 addr) -> std::optional<u8> {
         if(addr == controllerInputMemoryAddress) {
             if(strobeFlag)
-                getButtonState();
+                fetchInput();
 
-            return 0x40 | (keysValue >> (7 - buttonID++)) & Bit0;
+            buttonID %= 8;
+
+            if(buttonID == 0) getButtonState();
+
+            //tutaj można to by troche zmienic
+
+            u8 val = 0x40 | ((keysValue >> (7 - buttonID++)) & Bit0);
+
+            return val;
         }
 
         return std::nullopt;
@@ -42,8 +52,12 @@ Controller::Controller(Memory *mem, uint16_t relatedMemoryAddress, const SDL_Key
 }
 
 void Controller::setButtonState(SDL_Keycode button, bool pressed) {
-    if(keymap.contains(SDL_GetScancodeFromKey(button))) {
-        keymap[SDL_GetScancodeFromKey(button)] = pressed;
+    auto key = std::find_if(keymap.begin(), keymap.end(), [button](const auto& pair) {
+        return pair.first == button;
+    });
+
+    if(key != keymap.end()) {
+        key->second = pressed;
     }
 }
 
@@ -102,9 +116,7 @@ void Controller::fetchInput() {
     auto keyboard = SDL_GetKeyboardState(null);
 
     for(auto& key: keymap) {
-        if(keyboard[key.first]) {
-            key.second = true;
-        }
+        key.second = keyboard[key.first];
     }
 
     buttonID = 0;

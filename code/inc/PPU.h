@@ -40,7 +40,6 @@ private:
 
     Memory* sharedMemory = null;
 
-    //Memory oam = Memory(oamSize);
     std::vector<u8> vram;
     std::array<Color, paletteSize> palette;
 
@@ -89,12 +88,6 @@ private:
     void redirectAddress(u16& address);
 
     //https://www.nesdev.org/wiki/PPU_registers
-
-    //PPUMASK 0x2001
-    // bool showBackground() const;
-    // bool showBackgroundLeft() const;
-    // bool showSprites() const;
-    // bool showSpritesLeft() const;
 };
 
 
