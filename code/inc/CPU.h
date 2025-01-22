@@ -16,13 +16,6 @@
 using namespace cpu;
 struct Instruction;
 
-enum Interrupt : u8 {
-    None,
-    NMI,
-    BRK,
-    IRQ
-};
-
 class CPU {
 public:
 
@@ -49,7 +42,6 @@ private:
 
     Registers* regs = null;
     Memory* mem = null;
-    Interrupt interrupt = None;
 
     nes_cycle_t cycle;
 

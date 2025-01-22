@@ -81,7 +81,7 @@ void initOpcodes() {
 
         //3
         Instruction{BMI, 2, Relative},
-        Instruction{AND, 5, IndexedIndirectX},
+        Instruction{AND, 5, IndexedIndirectY},
         ILLEGAL_OPCODE,
         ILLEGAL_OPCODE,
         ILLEGAL_OPCODE,
@@ -639,15 +639,6 @@ void opcodes::BRK(InstructionContext& ic) {
     ic.regs->PC = mergeToU16(lo, hi);
 }
 
-// u16 addr = 0;
-//
-// if(ic.holds<u16>()) {
-//     addr = ic.get<u16>();
-// }
-// else {
-//     addr = ic.get<u8>();
-// }
-
 void opcodes::ORA(InstructionContext& ic) {
     //u8 operand = ic.value.value_or(0);
     //u8 operand = ic.get<u8>();
@@ -668,7 +659,7 @@ void opcodes::ORA(InstructionContext& ic) {
 void opcodes::ASL(InstructionContext& ic) {
     // Pobierz wartość (z akumulatora lub pamięci)
 
-    u16 operand = ic.getValueFromAddress();
+    u8 operand = ic.getValueFromAddress();
 
     if(ic.mode == Accumulator)
         operand = ic.value;
@@ -678,7 +669,7 @@ void opcodes::ASL(InstructionContext& ic) {
     if(ic.mode == Accumulator)
         ic.regs->A = result;
     else
-        ic.write(operand, ic.regs->A);
+        ic.write(ic.value, result);
 
     ic.setStatus(Carry, operand & Bit7);
 
@@ -689,9 +680,9 @@ void opcodes::ASL(InstructionContext& ic) {
 void opcodes::PHP(InstructionContext& ic) {
     u8 status = ic.regs->P;
 
-    --ic.regs->S;
+    ic.write(0x100 + ic.regs->S, status);
 
-    ic.write(ic.regs->S, status);
+    --ic.regs->S;
 }
 
 void opcodes::BPL(InstructionContext& ic) {
@@ -780,7 +771,7 @@ void opcodes::ROL(InstructionContext& ic) {
 void opcodes::PLP(InstructionContext& ic) {
     ++ic.regs->S;
 
-    u8 status = ic.read(ic.regs->S);
+    u8 status = ic.read(0x100 + ic.regs->S);
 
     ic.regs->P = status | Break;  // Flaga B musi być ustawiona na 1
 }
@@ -1153,9 +1144,6 @@ void opcodes::NOP(InstructionContext& ic) {
     //only ads cycles
 }
 
-void opcodes::JNY(InstructionContext& ic) {
-}
-
 void opcodes::DEX(InstructionContext& ic) {
     ic.regs->X--;
     setZN(ic, ic.regs->X);
@@ -1228,12 +1216,6 @@ void opcodes::SBC(InstructionContext& ic) {
     // Zapisz wynik w rejestrze A
     ic.regs->SetA(result);
     //ic.regs->A = result;
-}
-
-void opcodes::JNC(InstructionContext& ic) {
-}
-
-void opcodes::JNX(InstructionContext& ic) {
 }
 
 void opcodes::BEQ(InstructionContext& ic) {

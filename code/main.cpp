@@ -7,28 +7,39 @@
 #include "Logger.h"
 #include "Opcodes.h"
 #include "PPU.h"
+#include "NESHelpers.h"
+#include "APU.h"
 
 using namespace std;
+
+static void audioCallback(void* userdata, u8* buffer, int len) {
+    auto apu = static_cast<APU *>(userdata);
+
+    if(apu == null) return;
+
+    apu->out(buffer, len);
+}
 
 int main(int argc, char* argv[])
 {
     CPU cpu;
     cpu.init();
 
-    Cartridge cartridge(R"(D:\Projects\roms\mario.nes)");
+    Cartridge cartridge(R"(D:\Projects\roms\nestest\nestest.nes)");
 
     cartridge.load();
     cartridge.loadToMemory(cpu.getMemory());
     cpu.reset();
 
     PPU ppu(cpu.getMemory());
+    //APU apu(cpu.getMemory());
 
     cartridge.loadToVRam(&ppu);
 
     Controller p1(cpu.getMemory(), input::p1, input::firstPlayerKeys);
     Controller p2(cpu.getMemory(), input::p2, input::secondPlayerKeys);
 
-    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS) != 0)
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_EVENTS) != 0)
     {
         return 1;
     }
@@ -54,6 +65,23 @@ int main(int argc, char* argv[])
         SDL_Log("Unable to create texture! SDL_Error: %s", SDL_GetError());
         return -1;
     }
+
+    // SDL_AudioSpec desiredSpec;
+    // desiredSpec.freq = audioFrequency;
+    // desiredSpec.format = AUDIO_S8;
+    // desiredSpec.channels = 1;
+    // desiredSpec.samples = 2048;
+    // desiredSpec.callback = audioCallback;
+    // desiredSpec.userdata = &apu;
+    //
+    // SDL_AudioSpec obtainedSpec;
+    // if(SDL_OpenAudio(&desiredSpec, &obtainedSpec) != 0) {
+    //     SDL_Log("Failed to open audio: %s", SDL_GetError());
+    //     return -1;
+    // }
+
+    // Start playing audio
+    SDL_PauseAudio(0);
 
     bool isOn = true;
     u64 prev_counter = SDL_GetPerformanceCounter();
@@ -85,9 +113,6 @@ int main(int argc, char* argv[])
             if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_s) {
                 INFOLOG(cpu.getRegisters()->toString());
             }
-
-            // p1.updateFromSDL(event);
-            // p2.updateFromSDL(event);
         }
 
         u64 cur_counter = SDL_GetPerformanceCounter();
@@ -107,6 +132,9 @@ int main(int argc, char* argv[])
             cpu.step(_master_cycle);
             ppu.step(_master_cycle);
         }
+
+        // for (int i = 4; i > 0; --i)
+        //     apu.step(_master_cycle);
 
         SDL_UpdateTexture(texture, null, ppu.getFrame().data(), resolution.x * sizeof(u32));
         SDL_RenderClear(renderer);

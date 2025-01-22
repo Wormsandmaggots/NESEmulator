@@ -20,14 +20,12 @@ using namespace std::chrono;
 
 #define NES_CLOCK_HZ (21477272ll / 4)
 
-typedef duration<int64_t, std::ratio<1, 1>> nes_cycle_t;
-typedef duration<int64_t, std::ratio<1, 1>> nes_ppu_cycle_t;
-typedef duration<int64_t, std::ratio<3, 1>> nes_cpu_cycle_t;
+typedef duration<i64, std::ratio<1, 1>> nes_cycle_t;
+typedef duration<i64, std::ratio<1, 1>> nes_ppu_cycle_t;
+typedef duration<i64, std::ratio<3, 1>> nes_cpu_cycle_t;
+typedef duration<i64, std::ratio<3, 1>> nes_apu_cycle_t;
 
-static nes_cycle_t ms_to_nes_cycle(double ms)
-{
-    return nes_cycle_t(int64_t(NES_CLOCK_HZ / 1000 * ms));
-}
+nes_cycle_t ms_to_nes_cycle(double ms);
 
 enum Bit : u8 {
     Bit0 = 0b00000001,
@@ -120,26 +118,7 @@ namespace cpu {
             return P & flag;
         }
 
-        std::string toString() const {
-            std::stringstream ss;
-
-            ss << std::hex << std::uppercase << std::setfill('0') << std::setw(2);
-            ss << "A: " << static_cast<int>(A) << std::endl;
-            ss << "X: " << static_cast<int>(X) << std::endl;
-            ss << "Y: " << static_cast<int>(Y) << std::endl;
-            ss << "PC: " << static_cast<int>(PC) << std::endl;
-            ss << "S: " << static_cast<int>(S) << std::endl;
-            ss << "Carry: " << getStatus(Carry) << std::endl;
-            ss << "Zero: " << getStatus(Zero) << std::endl;
-            ss << "Interrupt: " << getStatus(InterruptDisable) << std::endl;
-            ss << "Decimal: " << getStatus(Decimal) << std::endl;
-            ss << "Break: " << getStatus(Break) << std::endl;
-            ss << "Always1: " << getStatus(Always1) << std::endl;
-            ss << "Overflow: " << getStatus(Overflow) << std::endl;
-            ss << "Negative: " << getStatus(Negative) << std::endl;
-
-            return ss.str();
-        }
+        std::string toString() const;
     };
 }
 
@@ -200,23 +179,23 @@ namespace ppu {
             return (*PPUMask) & Bit4;
         }
 
-        u16 spritePatternTableAddress() {
+        u16 spritePatternTableAddress() const {
             return (*PPUControl) & Bit3 ? 0x1000 : 0x0000;
         }
 
-        u16 backgroundPatternTableAddress() {
+        u16 backgroundPatternTableAddress() const {
             return (*PPUControl) & Bit4 ? 0x1000 : 0x0000;
         }
 
-        u16 nametableAddress() {
+        u16 nametableAddress() const {
             return 0x2000 + uint16_t(*PPUControl & 0x3) * 0x400;
         }
 
-        u8 ppuAddressIncValue() {
+        u8 ppuAddressIncValue() const {
             return (*PPUControl) & Bit2 ? 32 : 1;
         }
 
-        bool vblankNmi() {
+        bool vblankNmi() const {
             return (*PPUControl) & Bit7;
         }
 
@@ -228,16 +207,16 @@ namespace ppu {
                 (*PPUStatus) &= ~Bit5;
         }
 
-        bool getSpriteOverflow() {
+        bool getSpriteOverflow() const {
             return spriteOverflow;
             //return (*PPUStatus) & Bit5;
         }
 
-        bool use8x16Sprites() {
+        bool use8x16Sprites() const {
             return (*PPUControl) & Bit5;
         }
 
-        bool getSprite0Hit() {
+        bool getSprite0Hit() const {
             return sprite0Hit;
             //return (*PPUStatus) & Bit6;
         }
@@ -259,97 +238,22 @@ namespace ppu {
                 (*PPUStatus) &= ~Bit7;
         }
 
-        bool getVblankFlag() {
+        bool getVblankFlag() const {
             return vblank;
         }
 
-        void writeLatch(u8 val) {
-            if(protect) return;
-
-            latch = val;
-        }
-
-        void writePPUSCROLL(u8 val) {
-            writeLatch(val);
-
-            W = !W;
-            if (W)
-            {
-                // first write
-                T = (T & 0xffe0) | (val >> 3);
-                X = val & 0x7;
-            }
-            else
-            {
-                // second write
-                T = (T & 0xc1f) | (uint16_t(val & 0xf8) << 2) | (uint16_t(val & 0x7) << 12);
-                yScroll = val;
-            }
-
-            (*PPUScroll) = val;
-        }
-
-        void writePPUCTRL(u8 val) {
-            writeLatch(val);
-
-            T = (T & 0xf3ff) | ((val & 0x3) << 10);
-
-            (*PPUControl) = val;
-        }
-
-        void writePPUAADDR(u8 val) {
-            writeLatch(val);
-
-            W = !W;
-            if (W)
-            {
-                // first write
-                // note that both PPUADDR(2006) and PPUSCROLL (2005) share the same _temp_ppu_addr
-                T = (T & 0x00ff) | (uint16_t(val & 0x3f) << 8);
-            }
-            else
-            {
-                //problem ppuaddres jest u8 a próbuje zapisać do niego u16 co jest źle
-                // second write
-                // note that both PPUADDR(2006) and PPUSCROLL (2005) share the same _temp_ppu_addr
-                T = (T & 0xff00) | val;
-                V = T;
-            }
-        }
-
-        void writePPUMASK(u8 val) {
-            writeLatch(val);
-            (*PPUMask) = val;
-        }
-
-        void writeOAMADDR(u8 val) {
-            writeLatch(val);
-            (*OAMAddr) = val;
-        }
-
-        void writeOAMDATA(u8 val)
-        {
-            writeLatch(val);
-
-            oam[(*OAMAddr)] = val;
-            (*OAMAddr)++;
-        }
-
+        void writeLatch(u8 val);
+        void writePPUSCROLL(u8 val);
+        void writePPUCTRL(u8 val);
+        void writePPUAADDR(u8 val);
+        void writePPUMASK(u8 val);
+        void writeOAMADDR(u8 val);
+        void writeOAMDATA(u8 val);
         void writePPUData(u8 val, PPU* ppu);
-
         void writeOAMDMA(u8 val);
 
         u8 readPPUSTATUS();
-
-        u8 readOAMDATA() {
-            if (maskOAMRead)
-                return 0xff;
-
-            uint8_t val = oam[(*OAMAddr)];
-            writeLatch(val);
-            return val;
-        }
-
+        u8 readOAMDATA();
         u8 readPPUDATA(PPU* ppu);
     };
 }
@@ -390,6 +294,31 @@ namespace input {
         SDL_SCANCODE_K,
         SDL_SCANCODE_L
     };
+}
+
+namespace apu {
+
+    constexpr u8 lengthTable[] = {
+        10, 254, 20, 2, 40, 4, 80, 6, 160, 8, 60, 10, 14, 12, 26, 14,
+        12, 16, 24, 18, 48, 20, 96, 22, 192, 24, 72, 26, 16, 28, 32, 30
+    };
+
+    constexpr u8 dutyTable[][8] = {
+        {0, 1, 0, 0, 0, 0, 0, 0},
+        {0, 1, 1, 0, 0, 0, 0, 0},
+        {0, 1, 1, 1, 1, 0, 0, 0},
+        {1, 0, 0, 1, 1, 1, 1, 1}
+    };
+
+    constexpr u8 triangleTable[] = {
+        15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0,
+        0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15
+    };
+
+    constexpr u16 noiseTable[] = {
+        4, 8, 16, 32, 64, 96, 128, 160, 202, 254, 380, 508, 762, 1016, 2034, 4068
+    };
+
 }
 
 #endif //NESHELPERS_H

@@ -21,7 +21,6 @@ struct InstructionContext {
     Registers* regs = null;
     Memory* mem = null;
     AddressingMode mode = AddressingMode::Undefined;
-    //std::variant<u8, i8, u16, void*> value;
     u16 value = 0;
     bool forcePageCross = false;
 
@@ -56,45 +55,28 @@ struct InstructionContext {
         return regs->getStatus(flag);
     }
 
-    //zmiana nazwy na coś bardziej suitable
-    u8 getValueFromAddress() const{ return mode == AddressingMode::Accumulator ? value : read(value); }
+    u8 getValueFromAddress() const {
+        return mode == AddressingMode::Accumulator ? value : read(value);
+    }
 
     void pushByte(uint8_t byte) const {
-        // Zapisz bajt na stosie (dekrementacja SP)
         mem->write(0x0100 + regs->S, byte);
         regs->S--;
     }
 
     void pushStatus() const {
-        // Zapisz flagi statusu na stosie
-        pushByte(regs->P | (1 << 5)); // Ustawienie flagi B
+        pushByte(regs->P | (1 << 5));
     }
 
     void pushAddress(uint16_t address) const {
-        // Zapisz adres (adres PC) na stosie
-        pushByte(address >> 8);  // Zapisz wyższy bajt
-        pushByte(address & 0xFF); // Zapisz niższy bajt
+        pushByte(address >> 8);
+        pushByte(address & 0xFF);
     }
-
-    // template<typename T>
-    // T get() {
-    //     if(std::holds_alternative<T>(value)) {
-    //         return std::get<T>(value);
-    //     }
-    //
-    //     ERRORLOG(error::invalidVariantTypeGet);
-    //     return 0;
-    // }
-    //
-    // template<typename T>
-    // bool holds() {
-    //     return std::holds_alternative<T>(value);
-    // }
 };
 
 struct Instruction {
     std::function<void(InstructionContext&)> opcode;
-    i8 cycles = -1; //cycles < 0 defines illegal opcode, unimplemented for now
+    i8 cycles = -1; //cycles < 0 defines illegal opcode
     AddressingMode mode = AddressingMode::Undefined;
     u8 opcodeAddress = 0x0;
 
@@ -131,13 +113,6 @@ struct Instruction {
             if(mode == AbsoluteIndexedX || mode == AbsoluteIndexedY || mode == IndexedIndirectY)
                 currentCycles+=1;
         }
-
-        // if(mode == AbsoluteIndexedX || mode == AbsoluteIndexedY || mode == IndexedIndirectY) {
-        //     const bool pageCross = hasCrossedPage || ic.forcePageCross;
-        //
-        //     if(pageCross)
-        //         currentCycles+=1;
-        // }
 
         return currentCycles;
     }
@@ -205,13 +180,10 @@ namespace opcodes {
     void DEC(InstructionContext& ic);
     void CLB(InstructionContext& ic);
     void NOP(InstructionContext& ic);
-    void JNY(InstructionContext& ic);
     void DEX(InstructionContext& ic);//49
 
     void CPX(InstructionContext& ic);
     void SBC(InstructionContext& ic);
-    void JNC(InstructionContext& ic);
-    void JNX(InstructionContext& ic);
     void BEQ(InstructionContext& ic);
     void SED(InstructionContext& ic);//55
 

@@ -47,22 +47,17 @@ void CPU::cleanup() {
 
 void CPU::execute(Instruction instruction) {
     if(executeNMI) {
-        WARNLOG("NMI executed");
+        //WARNLOG("NMI executed");
         pushAddress(regs->PC);
         pushByte(regs->P | 0x20);
         cycle += nes_cpu_cycle_t(7);
         regs->PC = mem->read(0xFFFA) | (mem->read(0xFFFB) << 8); // Skok do wektora NMI
-        // Zresetuj flagę przerwań
-        //clearVBlankFlag();
 
         executeNMI = false;
     }
     else if(executeDMA) {
-        WARNLOG("EXECUTE OAMDMA");
+        //WARNLOG("EXECUTE OAMDMA");
         PPU::setOAMDMA(OMDDMAAddress);
-        //_system->ppu()->oam_dma(_dma_addr);
-
-        //PPU::setOAMDMA(OMDDMAAddress);
 
         // The entire DMA takes 513 or 514 cycles
         // http://wiki.nesdev.com/w/index.php/PPU_registers#OAMDMA
@@ -104,8 +99,8 @@ void CPU::execute(Instruction instruction) {
 
         regs->PC++;
 
-        if(currentInstruction == 240000)
-            currentInstruction = 0;
+        // if(currentInstruction == 240000)
+        //     currentInstruction = 0;
 
         ic.value = fetch(ic.mode);
 

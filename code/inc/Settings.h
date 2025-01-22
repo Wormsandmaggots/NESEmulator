@@ -17,5 +17,7 @@ constexpr u16 vRamSize = 0x4000;
 constexpr u16 oamSize = 0x100;
 constexpr u8 paletteSize = 64;
 constexpr vec2d resolution{256, 240};
+constexpr u32 audioFrequency = 48000;
+constexpr u32 audioBufferLength = 4096;
 
 #endif //SETTINGS_H
