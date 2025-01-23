@@ -7,6 +7,8 @@
 #include <cmath>
 #include <SDL_audio.h>
 
+#include "CPU.h"
+
 using namespace apu;
 
 Pulse::Pulse(uint8_t channel) {
@@ -382,113 +384,134 @@ APU::APU(Memory *sharedMemory) {
         {
         case 0x4000:
             pulse1.writeControl(val);
-            return false;
+            return true;
         case 0x4001:
             pulse1.writeSweep(val);
-            return false;
+            return true;
         case 0x4002:
             pulse1.writeTimerLow(val);
-            return false;
+            return true;
         case 0x4003:
             pulse1.writeTimerHigh(val);
-            return false;
+            return true;
         case 0x4004:
             pulse2.writeControl(val);
-            return false;
+            return true;
         case 0x4005:
             pulse2.writeSweep(val);
-            return false;
+            return true;
         case 0x4006:
             pulse2.writeTimerLow(val);
-            return false;
+            return true;
         case 0x4007:
             pulse2.writeTimerHigh(val);
-            return false;
+            return true;
         case 0x4008:
             triangle.writeControl(val);
-            return false;
+            return true;
         case 0x400a:
             triangle.writeTimerLow(val);
-            return false;
+            return true;
         case 0x400b:
             triangle.writeTimerHigh(val);
-            return false;
+            return true;
         case 0x400c:
             noise.writeControl(val);
-            return false;
+            return true;
         case 0x400d:
         case 0x400e:
             noise.writePeriod(val);
-            return false;
+            return true;
         case 0x400f:
             noise.writeLength(val);
-            return false;
+            return true;
         case 0x4015:
             writeControl(val);
-            return false;
+            return true;
         case 0x4017:
             stepEnvelope();
             stepSweep();
             stepLength();
-            return false;
+            return true;
         default:
             break;
         }
-        
+
         return true;
     });
 }
 
 void APU::step(nes_cycle_t count) {
 
-    switch (frame) {
-        case 0: case 2: {
-            stepEnvelope();
+    cycles += count;
+    // for (int i = 0; i < 4; i++) {
+    //     if(cycles == nes_cycle_t(stepTable[i])) {
+    //         shouldTick = true;
+    //         break;
+    //     }
+    // }
+
+    if (cycles >= nes_apu_cycle_t(stepTable[frame])) {
+
+        switch (frame) {
+            case 0: case 2:
+                stepEnvelope();
             stepSweep();
             stepLength();
             break;
-        }
-        case 1: case 3: {
-            stepEnvelope();
+            case 1: case 3:
+                stepEnvelope();
             break;
         }
-        default:
-            break;
+        frame++;
+
+        if(frame > 3) {
+            frame = 0;
+            cycles = nes_apu_cycle_t(0);
+        }
     }
 
-    u32 samples = audioFrequency / 60 * 4;
-
-    if(frame == 3) {
-        samples = (audioFrequency/ 60) - 3 * (audioFrequency / (60 * 4));
-    }
+    const u32 samplesPerFrame = audioFrequency / 60; // Próbki na klatkę (np. 735 dla 44100 Hz)
+    u32 samplesToGenerate = samplesPerFrame / 4; // Próbek na każdy krok (4 kroki na klatkę)
 
     SDL_LockAudio();
 
-    for (u32 j = 0, step = 0; step < 3729; step++) {
-        if (j < samples &&
-            (step / 3729.0) > (j / static_cast<double>(samples)))
-        {
-            const uint8_t sample = getSample();
-            audioBuffer[audioBufferLength + j] = sample;
-            j++;
+    // for (u32 j = 0, step = 0; step < 3729; step++) {
+    //     if (j < samples &&
+    //         (step / 3729.0) > (j / static_cast<double>(samples)))
+    //     {
+    //         const uint8_t sample = getSample();
+    //         if(audioBufferLength + j > audioBufferSize)
+    //             break;
+    //
+    //         audioBuffer[audioBufferLength + j] = sample;
+    //         j++;
+    //     }
+    //
+    //
+    // }
+
+    for (u32 i = 0; i < samplesToGenerate; ++i) {
+        audioBuffer[audioBufferLength++] = getSample();
+        if (audioBufferLength >= audioBufferSize) {
+            audioBufferLength = 0; // Zapętlanie bufora
         }
-
-        pulse1.stepTimer();
-        pulse2.stepTimer();
-        noise.stepTimer();
-        triangle.stepTimer();
-        triangle.stepTimer();
     }
-
-    audioBufferLength += samples;
-    frame = (frame + 1) % 5;
-
     SDL_UnlockAudio();
+
+    pulse1.stepTimer();
+    pulse2.stepTimer();
+    noise.stepTimer();
+    triangle.stepTimer();
+
+    //audioBufferLength += samples;
+    //frame = (frame + 1) % 5;
 }
 
 void APU::out(uint8_t *buff, u32 len) {
     len = (len > audioBufferLength) ? audioBufferLength : len;
     memcpy(buff, audioBuffer, len);
+    audioBufferLength %= 4096;
     if (len > audioBufferLength)
     {
         memcpy(buff, audioBuffer, audioBufferLength);
@@ -504,6 +527,7 @@ void APU::out(uint8_t *buff, u32 len) {
 
 void APU::audioCallback(void *userdata, uint8_t *buffer, int len) {
     out(buffer, len);
+    audioBufferLength = 0;
 }
 
 void APU::writeControl(u8 val) {
@@ -551,6 +575,83 @@ void APU::stepEnvelope() {
 uint8_t APU::getSample() {
     double pulseOut = 0.00752 * (pulse1.out() + pulse2.out());
     double tndOut = 0.00851 * triangle.out() + 0.00494 * noise.out();
+    // double pulseOut = (pulse1.out() + pulse2.out()) * 0.01;
+    // double tndOut = (triangle.out() + noise.out()) * 0.01;
 
     return static_cast<uint8_t>(floor(255.0 * (pulseOut + tndOut)));
 }
+
+// APU::APU(Memory *sharedMemory) {
+//     sharedMemory->beforeWrite.push_back([this](u16 addr, u8 val) -> bool {
+//         switch (addr) {
+//             case 0x4017:
+//                 frameCounter.stopIRQ = val & Bit6;
+//                 frameCounter.mode4Step = val & Bit7;
+//         }
+//
+//         return true;
+//     });
+// }
+//
+// void APU::step(nes_cycle_t count) {
+//     if(count.count() % 2 != 0) return;
+//
+//     while(master_cycle < count) {
+//         stepAPU(nes_apu_cycle_t(1));
+//
+//         //info co do kanału audio
+//
+//         //frame counter/ sequencer
+//         u8 previousStepCounter = frameCounter.currentTick;
+//
+//         for (auto i : stepTable) {
+//             if(apu_cycle.count() == i)
+//                 frameCounter.currentTick++;
+//         }
+//
+//         if(previousStepCounter != frameCounter.currentTick) {
+//             sequencer();
+//         }
+//     }
+// }
+//
+// void APU::stepAPU(nes_apu_cycle_t count) {
+//     master_cycle += count;
+//     apu_cycle += count;
+//
+//     if(apu_cycle.count() > stepTable[3]) {
+//         apu_cycle = nes_apu_cycle_t(0);
+//         frameCounter.currentTick = 0;
+//     }
+// }
+//
+// void APU::sequencer() {
+//     switch (frameCounter.currentTick) {
+//         case 0:
+//             quarterFrame();
+//             break;
+//         case 1:
+//             quarterFrame();
+//             halfFrame();
+//             break;
+//         case 2:
+//             quarterFrame();
+//             break;
+//         case 3:
+//             quarterFrame();
+//             halfFrame();
+//             invokeIRQ();
+//             break;
+//     }
+// }
+//
+// void APU::invokeIRQ() const {
+//     if(!frameCounter.stopIRQ)
+//         CPU::setIRQ();
+// }
+//
+// void APU::quarterFrame() {
+// }
+//
+// void APU::halfFrame() {
+// }

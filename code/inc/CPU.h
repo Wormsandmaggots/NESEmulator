@@ -31,12 +31,16 @@ public:
     u16 fetch(AddressingMode addressing_mode);
     void step(nes_cycle_t new_count);
 
+    nes_cycle_t getCycle() const;
+
     static void setNMI();
     static void setDMA(u16 omddmaAddress);
+    static void setIRQ();
 
 private:
     static bool executeNMI;
     static bool executeDMA;
+    static bool executeIRQ;
 
     u64 currentInstruction = 0;
 

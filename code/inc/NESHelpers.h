@@ -23,7 +23,7 @@ using namespace std::chrono;
 typedef duration<i64, std::ratio<1, 1>> nes_cycle_t;
 typedef duration<i64, std::ratio<1, 1>> nes_ppu_cycle_t;
 typedef duration<i64, std::ratio<3, 1>> nes_cpu_cycle_t;
-typedef duration<i64, std::ratio<3, 1>> nes_apu_cycle_t;
+typedef duration<i64, std::ratio<6, 1>> nes_apu_cycle_t;
 
 nes_cycle_t ms_to_nes_cycle(double ms);
 
@@ -129,9 +129,7 @@ namespace opcodes {
     bool u16AddressingMode(cpu::AddressingMode addressingMode);
     bool i8AddressingMode(cpu::AddressingMode addressingMode);
 
-    inline u16 mergeToU16(const u8 low, const u8 high) {
-        return static_cast<u16>(low) | (static_cast<u16>(high) << 8);
-    }
+    u16 mergeToU16(const u8 low, const u8 high);
 }
 
 namespace ppu {
@@ -145,7 +143,6 @@ namespace ppu {
 
     //https://www.nesdev.org/wiki/PPU_registers
     struct Registers {
-        //u8 registers[8];       // Rejestry PPU
         u16 V = 0;                 // Rejestr adresu (current VRAM address)
         u16 T = 0;                 // Rejestr adresu tymczasowego
         u8 X = 0;                  // Przesunięcie przesuwu poziomego
@@ -171,76 +168,20 @@ namespace ppu {
 
         std::vector<u8> oam;
 
-        bool showBackground() const {
-            return (*PPUMask) & Bit3;
-        }
-
-        bool showSprites() const {
-            return (*PPUMask) & Bit4;
-        }
-
-        u16 spritePatternTableAddress() const {
-            return (*PPUControl) & Bit3 ? 0x1000 : 0x0000;
-        }
-
-        u16 backgroundPatternTableAddress() const {
-            return (*PPUControl) & Bit4 ? 0x1000 : 0x0000;
-        }
-
-        u16 nametableAddress() const {
-            return 0x2000 + uint16_t(*PPUControl & 0x3) * 0x400;
-        }
-
-        u8 ppuAddressIncValue() const {
-            return (*PPUControl) & Bit2 ? 32 : 1;
-        }
-
-        bool vblankNmi() const {
-            return (*PPUControl) & Bit7;
-        }
-
-        void setSpriteOverflow(bool val) {
-            spriteOverflow = val;
-            if(val)
-                (*PPUStatus) |= Bit5;
-            else
-                (*PPUStatus) &= ~Bit5;
-        }
-
-        bool getSpriteOverflow() const {
-            return spriteOverflow;
-            //return (*PPUStatus) & Bit5;
-        }
-
-        bool use8x16Sprites() const {
-            return (*PPUControl) & Bit5;
-        }
-
-        bool getSprite0Hit() const {
-            return sprite0Hit;
-            //return (*PPUStatus) & Bit6;
-        }
-
-        void setSprite0Hit(bool val) {
-            sprite0Hit = val;
-            if(val)
-                (*PPUStatus) |= Bit6;
-            else
-                (*PPUStatus) &= ~Bit6;
-        }
-
-        void setVblankFlag(bool val) {
-            vblank = val;
-
-            if(val)
-                (*PPUStatus) |= Bit7;
-            else
-                (*PPUStatus) &= ~Bit7;
-        }
-
-        bool getVblankFlag() const {
-            return vblank;
-        }
+        bool showBackground() const;
+        bool showSprites() const;
+        u16 spritePatternTableAddress() const;
+        u16 backgroundPatternTableAddress() const;
+        u16 nametableAddress() const;
+        u8 ppuAddressIncValue() const;
+        bool vblankNmi() const;
+        void setSpriteOverflow(bool val);
+        bool getSpriteOverflow() const;
+        bool use8x16Sprites() const;
+        bool getSprite0Hit() const;
+        void setSprite0Hit(bool val);
+        void setVblankFlag(bool val);
+        bool getVblankFlag() const;
 
         void writeLatch(u8 val);
         void writePPUSCROLL(u8 val);
@@ -317,6 +258,16 @@ namespace apu {
 
     constexpr u16 noiseTable[] = {
         4, 8, 16, 32, 64, 96, 128, 160, 202, 254, 380, 508, 762, 1016, 2034, 4068
+    };
+
+    constexpr u32 stepTable[] = {
+        3728, 7456, 11185, 14914
+    };
+
+    struct FrameCounter {
+        bool mode4Step = true;
+        bool stopIRQ = false;
+        u8 currentTick = 0;
     };
 
 }

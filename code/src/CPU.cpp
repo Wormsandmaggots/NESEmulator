@@ -14,6 +14,7 @@
 bool CPU::executeNMI = false;
 u16 CPU::OMDDMAAddress = 0;
 bool CPU::executeDMA = false;
+bool CPU::executeIRQ = false;
 
 void CPU::init() {
 
@@ -68,8 +69,20 @@ void CPU::execute(Instruction instruction) {
 
         executeDMA = false;
     }
+    else if(executeIRQ) {
+        if(!regs->getStatus(InterruptDisable)) {
+            pushAddress(regs->PC);
+            pushByte(regs->P);
+            cycle += nes_cpu_cycle_t(7);
+            regs->PC = mem->read(0xFFFE) | (mem->read(0xFFFF) << 8); // Skok do wektora IRQ
+            regs->clearStatus(InterruptDisable);
+        }
+
+        executeIRQ = false;
+    }
     else {
         if(instruction.cycles < 0) {
+            assert(false);
             std::cout << instruction.cycles << std::endl;
         }
 
@@ -302,6 +315,10 @@ void CPU::step(nes_cycle_t new_count) {
     }
 }
 
+nes_cycle_t CPU::getCycle() const {
+    return cycle;
+}
+
 void CPU::setNMI() {
     executeNMI = true;
 }
@@ -309,4 +326,8 @@ void CPU::setNMI() {
 void CPU::setDMA(uint16_t omddmaAddress) {
     executeDMA = true;
     OMDDMAAddress = omddmaAddress;
+}
+
+void CPU::setIRQ() {
+    executeIRQ = true;
 }

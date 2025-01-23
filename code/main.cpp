@@ -25,14 +25,14 @@ int main(int argc, char* argv[])
     CPU cpu;
     cpu.init();
 
-    Cartridge cartridge(R"(D:\Projects\roms\nestest\nestest.nes)");
+    Cartridge cartridge(R"(D:\Projects\roms\mario.nes)");
 
     cartridge.load();
     cartridge.loadToMemory(cpu.getMemory());
     cpu.reset();
 
     PPU ppu(cpu.getMemory());
-    //APU apu(cpu.getMemory());
+    APU apu(cpu.getMemory());
 
     cartridge.loadToVRam(&ppu);
 
@@ -66,19 +66,19 @@ int main(int argc, char* argv[])
         return -1;
     }
 
-    // SDL_AudioSpec desiredSpec;
-    // desiredSpec.freq = audioFrequency;
-    // desiredSpec.format = AUDIO_S8;
-    // desiredSpec.channels = 1;
-    // desiredSpec.samples = 2048;
-    // desiredSpec.callback = audioCallback;
-    // desiredSpec.userdata = &apu;
-    //
-    // SDL_AudioSpec obtainedSpec;
-    // if(SDL_OpenAudio(&desiredSpec, &obtainedSpec) != 0) {
-    //     SDL_Log("Failed to open audio: %s", SDL_GetError());
-    //     return -1;
-    // }
+    SDL_AudioSpec desiredSpec;
+    desiredSpec.freq = audioFrequency;
+    desiredSpec.format = AUDIO_S8;
+    desiredSpec.channels = 1;
+    desiredSpec.samples = 2048;
+    desiredSpec.callback = audioCallback;
+    desiredSpec.userdata = &apu;
+
+    SDL_AudioSpec obtainedSpec;
+    if(SDL_OpenAudio(&desiredSpec, &obtainedSpec) != 0) {
+        SDL_Log("Failed to open audio: %s", SDL_GetError());
+        return -1;
+    }
 
     // Start playing audio
     SDL_PauseAudio(0);
@@ -131,10 +131,9 @@ int main(int argc, char* argv[])
             _master_cycle += nes_cycle_t(1);
             cpu.step(_master_cycle);
             ppu.step(_master_cycle);
+            if(_master_cycle % nes_cpu_cycle_t(2) == nes_cpu_cycle_t(0))
+                apu.step(nes_cycle_t(1));
         }
-
-        // for (int i = 4; i > 0; --i)
-        //     apu.step(_master_cycle);
 
         SDL_UpdateTexture(texture, null, ppu.getFrame().data(), resolution.x * sizeof(u32));
         SDL_RenderClear(renderer);

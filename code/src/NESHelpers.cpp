@@ -43,6 +43,81 @@ bool opcodes::i8AddressingMode(const AddressingMode addressingMode) {
     return addressingMode == AddressingMode::Relative;
 }
 
+uint16_t opcodes::mergeToU16(const uint8_t low, const uint8_t high) {
+    return static_cast<u16>(low) | (static_cast<u16>(high) << 8);
+}
+
+bool ppu::Registers::showBackground() const {
+    return (*PPUMask) & Bit3;
+}
+
+bool ppu::Registers::showSprites() const {
+    return (*PPUMask) & Bit4;
+}
+
+uint16_t ppu::Registers::spritePatternTableAddress() const {
+    return (*PPUControl) & Bit3 ? 0x1000 : 0x0000;
+}
+
+uint16_t ppu::Registers::backgroundPatternTableAddress() const {
+    return (*PPUControl) & Bit4 ? 0x1000 : 0x0000;
+}
+
+uint16_t ppu::Registers::nametableAddress() const {
+    return 0x2000 + uint16_t(*PPUControl & 0x3) * 0x400;
+}
+
+uint8_t ppu::Registers::ppuAddressIncValue() const {
+    return (*PPUControl) & Bit2 ? 32 : 1;
+}
+
+bool ppu::Registers::vblankNmi() const {
+    return (*PPUControl) & Bit7;
+}
+
+void ppu::Registers::setSpriteOverflow(bool val) {
+    spriteOverflow = val;
+    if(val)
+        (*PPUStatus) |= Bit5;
+    else
+        (*PPUStatus) &= ~Bit5;
+}
+
+bool ppu::Registers::getSpriteOverflow() const {
+    return spriteOverflow;
+    //return (*PPUStatus) & Bit5;
+}
+
+bool ppu::Registers::use8x16Sprites() const {
+    return (*PPUControl) & Bit5;
+}
+
+bool ppu::Registers::getSprite0Hit() const {
+    return sprite0Hit;
+    //return (*PPUStatus) & Bit6;
+}
+
+void ppu::Registers::setSprite0Hit(bool val) {
+    sprite0Hit = val;
+    if(val)
+        (*PPUStatus) |= Bit6;
+    else
+        (*PPUStatus) &= ~Bit6;
+}
+
+void ppu::Registers::setVblankFlag(bool val) {
+    vblank = val;
+
+    if(val)
+        (*PPUStatus) |= Bit7;
+    else
+        (*PPUStatus) &= ~Bit7;
+}
+
+bool ppu::Registers::getVblankFlag() const {
+    return vblank;
+}
+
 void ppu::Registers::writeLatch(uint8_t val) {
     if(protect) return;
 

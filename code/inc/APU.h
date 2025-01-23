@@ -6,7 +6,7 @@
 #define APU_H
 #include "NESHelpers.h"
 
-class APU;
+using namespace apu;
 
 class Pulse {
 public:
@@ -111,32 +111,46 @@ private:
 
 
 class APU {
+// public:
+//     explicit APU(Memory* sharedMemory);
+//     void step(nes_cycle_t count);
+// private:
+//     FrameCounter frameCounter;
+//
+//     nes_cycle_t master_cycle = nes_cycle_t(0);
+//     nes_apu_cycle_t apu_cycle = nes_apu_cycle_t(0);
+//
+//     void stepAPU(nes_apu_cycle_t);
+//     void sequencer();
+//     void invokeIRQ() const;
+//     void quarterFrame();
+//     void halfFrame();
 public:
-    explicit APU(Memory* sharedMemory);
-    void step(nes_cycle_t);
-    void out(u8* buff, u32 len);
-    void audioCallback(void* userdata, uint8_t* buffer, int len);
+     explicit APU(Memory* sharedMemory);
+     void step(nes_cycle_t);
+     void out(u8* buff, u32 len);
+     void audioCallback(void* userdata, uint8_t* buffer, int len);
 
 private:
-    u8 frame = 0;
+     u8 frame = 0;
 
-    nes_cycle_t cycles;
-    uint8_t audioBuffer[audioBufferLength] = {0};
-    u64 audioBufferLength;
+     nes_cycle_t cycles;
+    nes_cycle_t apuCycles;
+     u8 audioBuffer[audioBufferSize] = {0};
+     u64 audioBufferLength = 0;
 
-    Pulse pulse1 = Pulse(1);
-    Pulse pulse2 = Pulse(2);
-    Noise noise;
-    Triangle triangle;
+     Pulse pulse1 = Pulse(1);
+     Pulse pulse2 = Pulse(2);
+     Noise noise;
+     Triangle triangle;
 
-    void writeControl(u8 val);
-    void stepLength();
-    void stepSweep();
-    void stepEnvelope();
+     void writeControl(u8 val);
+     void stepLength();
+     void stepSweep();
+     void stepEnvelope();
 
-    u8 getSample();
+     u8 getSample();
 };
-
 
 
 #endif //APU_H
