@@ -12,12 +12,48 @@
 
 using namespace std;
 
-static void audioCallback(void* userdata, u8* buffer, int len) {
-    auto apu = static_cast<APU *>(userdata);
+void testDevices(){
+    for (uint8_t i = 0; i < SDL_GetNumAudioDrivers(); ++i) {
+        printf("Audio driver %d: %s\n", i, SDL_GetAudioDriver(i));
+    }
 
-    if(apu == null) return;
+    cout << "current audio driver is " << SDL_GetCurrentAudioDriver() << endl;
 
-    apu->out(buffer, len);
+    int nbDevice = SDL_GetNumAudioDevices(0);
+
+    for(int i = 0; i < nbDevice; ++i){
+        cout << "device n°" << i << ": ";
+        cout << SDL_GetAudioDeviceName(i, 0) << endl;
+    }
+}
+
+void audioCallback(void* userdata, u8* stream, int len) {
+    APU* apu = static_cast<APU*>(userdata);
+    vector<uint8_t>& sampleBuffer = apu->getSampleBuffer();
+
+    // Jeśli w buforze jest wystarczająco próbek, kopiujemy je do strumienia audio
+    if (sampleBuffer.size() >= len) {
+        memcpy(stream, sampleBuffer.data(), len);
+
+        // stringstream ss;
+        //
+        // for(auto a : apu->getSampleBuffer()) {
+        //     if(a > 0) {
+        //         ss << (int)a;
+        //         ss << " ";
+        //     }
+        // }
+        //
+        // if(!ss.str().empty())
+        //     INFOLOG(("-------------------" + ss.str()));
+
+        sampleBuffer.erase(sampleBuffer.begin(), sampleBuffer.begin() + len);
+    } else {
+        // Jeśli nie ma wystarczająco próbek, wypełniamy strumień ciszą (0)
+        memset(stream, 0, len);
+    }
+
+    //sampleBuffer.clear();
 }
 
 int main(int argc, char* argv[])
@@ -66,21 +102,26 @@ int main(int argc, char* argv[])
         return -1;
     }
 
-    SDL_AudioSpec desiredSpec;
-    desiredSpec.freq = audioFrequency;
-    desiredSpec.format = AUDIO_S8;
-    desiredSpec.channels = 1;
-    desiredSpec.samples = 2048;
-    desiredSpec.callback = audioCallback;
-    desiredSpec.userdata = &apu;
+    testDevices();
 
-    SDL_AudioSpec obtainedSpec;
-    if(SDL_OpenAudio(&desiredSpec, &obtainedSpec) != 0) {
-        SDL_Log("Failed to open audio: %s", SDL_GetError());
+    // Inicjalizacja SDL Audio
+    SDL_AudioSpec desiredSpec, obtainedSpec;
+    desiredSpec.freq = 44100; // Częstotliwość próbkowania
+    desiredSpec.format = AUDIO_U8; // Format próbek (8-bit unsigned)
+    desiredSpec.channels = 1; // Mono
+    desiredSpec.samples = 1024; // Rozmiar bufora audio
+    desiredSpec.callback = audioCallback; // Funkcja callback
+    desiredSpec.userdata = &apu; // Przekazanie wskaźnika do APU
+
+    if (SDL_OpenAudio(&desiredSpec, &obtainedSpec) < 0) {
+        SDL_Log("Nie udało się otworzyć urządzenia audio: %s", SDL_GetError());
         return -1;
     }
+    SDL_AudioDeviceID device;
+    device = SDL_OpenAudioDevice(SDL_GetAudioDeviceName(0, 0), 0, &desiredSpec, &obtainedSpec, 0);
+    cout << "play audio on device n°" << device << endl;
 
-    // Start playing audio
+    SDL_PauseAudioDevice(device, 0);
     SDL_PauseAudio(0);
 
     bool isOn = true;
@@ -131,8 +172,7 @@ int main(int argc, char* argv[])
             _master_cycle += nes_cycle_t(1);
             cpu.step(_master_cycle);
             ppu.step(_master_cycle);
-            if(_master_cycle % nes_cpu_cycle_t(2) == nes_cpu_cycle_t(0))
-                apu.step(nes_cycle_t(1));
+            apu.step(_master_cycle);
         }
 
         SDL_UpdateTexture(texture, null, ppu.getFrame().data(), resolution.x * sizeof(u32));
@@ -141,6 +181,7 @@ int main(int argc, char* argv[])
         SDL_RenderPresent(renderer);
     }
 
+    SDL_CloseAudio(); // Zamknij urządzenie audio
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();
