@@ -82,8 +82,8 @@ void CPU::execute(Instruction instruction) {
     }
     else {
         if(instruction.cycles < 0) {
-            assert(false);
             std::cout << instruction.cycles << std::endl;
+            assert(false);
         }
 
         InstructionContext ic;

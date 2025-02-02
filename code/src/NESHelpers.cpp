@@ -280,3 +280,108 @@ std::string Registers::toString() const {
 nes_cycle_t ms_to_nes_cycle(double ms) {
     return nes_cycle_t(int64_t(NES_CLOCK_HZ / 1000 * ms));
 }
+
+// void apu::Pulse::writeSweep(uint8_t val) {
+//     enabledSweep = val & Bit7;
+//     sweepDividerPeriod = val & (Bit6 | Bit5 | Bit4);
+//     negate = val & Bit3;
+//     shiftCount = val & (Bit2 | Bit1 | Bit0);
+// }
+//
+// void apu::Pulse::writeTimerLow(uint8_t val) {
+//     timerLow = val;
+// }
+//
+// void apu::Pulse::writeDutyAndEnvelope(uint8_t val) {
+//     dutyCycle = val & (Bit7 | Bit6);
+//     lengthCounterHalt = val & Bit5;
+//     constant = val & Bit4;
+//     envelopeDividerPeriod = val & (Bit3 | Bit2 | Bit1 | Bit0);
+//     constantVolume = val & 15;
+// }
+//
+// void apu::Pulse::writeLengthCounterAndTimerHigh(uint8_t val) {
+//     //lengthCounterLoad = val & (Bit7 | Bit6 | Bit5 | Bit4 | Bit3);
+//     lengthCounterLoad = lengthTable[val >> 3];
+//     timerHigh = val & (Bit2 | Bit1 | Bit0);
+//     //lengthValue = lengthTable[val >> 3];
+//     timerCounter = static_cast<uint16_t>(timerHigh << 8) | timerLow;
+// }
+//
+// void apu::Pulse::stepSweep() {
+//     if (!enabledSweep) return;
+//
+//     sweepDividerPeriod--;  // Zmniejszanie okresu dzielnika
+//
+//     if (sweepDividerPeriod == 0) {
+//         sweepDividerPeriod = envelopeDividerPeriod;  // Resetowanie okresu
+//         int timerValue = (timerLow | static_cast<uint16_t>(timerHigh << 8));  // Połączenie low i high byte
+//         int sweepValue = negate ? (timerValue - (timerValue >> shiftCount)) : (timerValue + (timerValue >> shiftCount));
+//
+//         if (sweepValue >= 0 && sweepValue <= 0x7FF) {
+//             timerLow = sweepValue & 0xFF;
+//             timerHigh = (sweepValue >> 8) & 0x07;  // Uaktualnienie wartości timera
+//             timerCounter = static_cast<uint16_t>(timerHigh << 8) | timerLow;
+//         }
+//     }
+// }
+//
+// void apu::Pulse::stepLengthCounter() {
+//     if (lengthCounterHalt) return;  // Jeżeli zatrzymane, nie zmniejszamy licznika
+//     if (lengthCounterLoad > 0) {
+//         lengthCounterLoad--;  // Zmniejszenie licznika długości
+//     }
+//     // if (lengthCounterLoad == 0) {
+//     //     enabled = false;
+//     //     // Jeśli licznik długości osiągnął 0, kanał jest wyłączony
+//     //     // Możesz zaimplementować logikę, która wyłącza dźwięk lub zaktualizuje stan kanału
+//     // }
+// }
+//
+// void apu::Pulse::stepEnvelope() {
+//     if (constant) return;  // Jeśli 'constant' jest włączony, nie zmieniamy głośności
+//
+//     envelopeDividerPeriod--;  // Zmniejszamy licznik
+//
+//     if (envelopeDividerPeriod == 0) {
+//         envelopeDividerPeriod = 15;  // Resetowanie okresu
+//
+//         // Zmieniamy głośność obwiedni
+//         if (envelopeVolume > 0) {
+//             envelopeVolume--;  // Zmniejszamy głośność
+//         } else {
+//             envelopeVolume = 15;  // Zresetuj głośność do maksymalnej wartości
+//         }
+//     }
+// }
+//
+// void apu::Pulse::stepTimer() {
+//     if (--timerCounter == 0) {
+//         timerCounter = static_cast<uint16_t>(timerHigh << 8) | timerLow; // Reset timera
+//         phaseAccumulator = (phaseAccumulator + 1) % 8; // Aktualizacja fazy
+//     }
+// }
+//
+// uint8_t apu::Pulse::getSample() {
+//     if (!enabled || lengthCounterLoad == 0) {
+//         return 0;
+//     }
+//
+//     uint16_t timerPeriod = static_cast<uint16_t>(timerHigh << 8) | timerLow;
+//     timerPeriod = (timerPeriod + 1) * 2;
+//
+//     static constexpr bool dutyTable[4][8] = {
+//         {0,0,0,0,0,0,0,1}, // 12.5% (0)
+//         {0,0,0,0,0,0,1,1}, // 25%   (1)
+//         {0,0,0,0,1,1,1,1}, // 50%   (2)
+//         {0,0,1,1,1,1,1,1}  // 75%   (3)
+//     };
+//
+//     phaseAccumulator += 1;
+//     uint8_t currentPhase = (phaseAccumulator / timerPeriod) % 8;
+//
+//     bool waveOutput = dutyTable[dutyCycle >> 6][phaseAccumulator];
+//     uint8_t volume = constant ? constantVolume : envelopeVolume;
+//
+//     return waveOutput ? volume : 0;
+// }

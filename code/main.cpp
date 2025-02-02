@@ -1,5 +1,5 @@
 #include <iostream>
-
+#define MINIAUDIO_IMPLEMENTATION
 #include <SDL.h>
 #include "Cartridge.h"
 #include "Controller.h"
@@ -9,6 +9,7 @@
 #include "PPU.h"
 #include "NESHelpers.h"
 #include "APU.h"
+#include "miniaudio.h"
 
 using namespace std;
 
@@ -27,30 +28,45 @@ void testDevices(){
     }
 }
 
+void audioCallback2(ma_device* pDevice, void* pOutput, const void* pInput, ma_uint32 frameCount) {
+    APU* apu = (APU*)pDevice->pUserData;
+    if (!apu) return;
+
+    vector<uint8_t>* sampleBuffer;// = apu->getSampleBuffer();
+    if(!sampleBuffer) return;
+
+    uint8_t* outputBuffer = (uint8_t*)pOutput;
+    size_t bufferSize = sampleBuffer->size();
+
+    // Sprawdź, czy mamy wystarczającą liczbę próbek
+    if (bufferSize >= frameCount) {
+        memcpy(outputBuffer, sampleBuffer->data(), frameCount);
+        sampleBuffer->erase(sampleBuffer->begin(), sampleBuffer->begin() + frameCount);
+    } else {
+        // Jeśli nie mamy wystarczających próbek, wypełniamy ciszą
+        memset(outputBuffer, 0, frameCount); // 128 to środek zakresu dla AUDIO_U8
+    }
+}
+
 void audioCallback(void* userdata, u8* stream, int len) {
     APU* apu = static_cast<APU*>(userdata);
-    vector<uint8_t>& sampleBuffer = apu->getSampleBuffer();
+    if(apu == null)
+        return;
+
+    //apu->out(stream, len);
+    vector<uint8_t>* sampleBuffer = apu->getSampleBuffer();
+    if(!sampleBuffer) return;
 
     // Jeśli w buforze jest wystarczająco próbek, kopiujemy je do strumienia audio
-    if (sampleBuffer.size() >= len) {
-        memcpy(stream, sampleBuffer.data(), len);
-
-        // stringstream ss;
-        //
-        // for(auto a : apu->getSampleBuffer()) {
-        //     if(a > 0) {
-        //         ss << (int)a;
-        //         ss << " ";
-        //     }
-        // }
-        //
-        // if(!ss.str().empty())
-        //     INFOLOG(("-------------------" + ss.str()));
-
-        sampleBuffer.erase(sampleBuffer.begin(), sampleBuffer.begin() + len);
+    if (sampleBuffer->size() >= len) {
+        memcpy(stream, sampleBuffer->data(), len);
+        sampleBuffer->erase(sampleBuffer->begin(), sampleBuffer->begin() + len);
     } else {
         // Jeśli nie ma wystarczająco próbek, wypełniamy strumień ciszą (0)
-        memset(stream, 0, len);
+        //memset(stream, 128, len);
+        // memcpy(stream, apu->getSampleBuffer()->data(), apu->getSampleBuffer()->size());
+        // memset(stream + apu->getSampleBuffer()->size(), 0, len - apu->getSampleBuffer()->size());
+        // sampleBuffer->clear();
     }
 
     //sampleBuffer.clear();
@@ -61,7 +77,7 @@ int main(int argc, char* argv[])
     CPU cpu;
     cpu.init();
 
-    Cartridge cartridge(R"(D:\Projects\roms\mario.nes)");
+    Cartridge cartridge(R"(D:\Projects\roms\mariopal.nes)");
 
     cartridge.load();
     cartridge.loadToMemory(cpu.getMemory());
@@ -75,7 +91,7 @@ int main(int argc, char* argv[])
     Controller p1(cpu.getMemory(), input::p1, input::firstPlayerKeys);
     Controller p2(cpu.getMemory(), input::p2, input::secondPlayerKeys);
 
-    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_EVENTS) != 0)
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) != 0)
     {
         return 1;
     }
@@ -102,8 +118,8 @@ int main(int argc, char* argv[])
         return -1;
     }
 
-    testDevices();
-
+    // testDevices();
+    //
     // Inicjalizacja SDL Audio
     SDL_AudioSpec desiredSpec, obtainedSpec;
     desiredSpec.freq = 44100; // Częstotliwość próbkowania
@@ -113,16 +129,28 @@ int main(int argc, char* argv[])
     desiredSpec.callback = audioCallback; // Funkcja callback
     desiredSpec.userdata = &apu; // Przekazanie wskaźnika do APU
 
-    if (SDL_OpenAudio(&desiredSpec, &obtainedSpec) < 0) {
-        SDL_Log("Nie udało się otworzyć urządzenia audio: %s", SDL_GetError());
-        return -1;
-    }
     SDL_AudioDeviceID device;
     device = SDL_OpenAudioDevice(SDL_GetAudioDeviceName(0, 0), 0, &desiredSpec, &obtainedSpec, 0);
     cout << "play audio on device n°" << device << endl;
 
     SDL_PauseAudioDevice(device, 0);
-    SDL_PauseAudio(0);
+    //SDL_PauseAudio(0);
+
+    // ma_device_config config = ma_device_config_init(ma_device_type_playback);
+    // config.playback.format   = ma_format_s16; // AUDIO_U8 (unsigned 8-bit PCM)
+    // config.playback.channels = 1; // Mon
+    // config.sampleRate        = 48000; // 44.1kHz
+    // config.dataCallback      = audioCallback2;
+    // config.pUserData         = &apu;
+    //
+    // ma_device device;
+    // if (ma_device_init(NULL, &config, &device) != MA_SUCCESS) {
+    //     cout << "Nie udało się uruchomić miniaudio!" << endl;
+    //     return -1;
+    // }
+    //
+    // // Uruchamiamy odtwarzanie
+    // ma_device_start(&device);
 
     bool isOn = true;
     u64 prev_counter = SDL_GetPerformanceCounter();
@@ -181,7 +209,7 @@ int main(int argc, char* argv[])
         SDL_RenderPresent(renderer);
     }
 
-    SDL_CloseAudio(); // Zamknij urządzenie audio
+    //SDL_CloseAudio(); // Zamknij urządzenie audio
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();

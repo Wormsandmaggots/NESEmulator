@@ -272,138 +272,107 @@ namespace apu {
         u8 currentTick = 0;
     };
 
-    struct Pulse {
-        //0x4000 or 0x4004
-        bool enabled = false;
-        u8 channel = 0;
-        u8 dutyCycle = 0;
-        bool lengthCounterHalt = false;
-        bool constant = false;
-        u8 envelopeDividerPeriod = 0;
-
-        //0x4001 or 0x4005
-        bool enabledSweep = false;
-        u8 sweepDividerPeriod = 0;
-        bool negate = false;
-        u8 shiftCount = 0;
-        u8 envelopeVolume = 0;
-
-        //0x4002 or 0x4006
-        u8 timerLow = 0;
-
-        //0x4003 or 0x4007
-        u8 lengthCounterLoad = 0;
-        u8 timerHigh = 0;
-
-        u32 phaseAccumulator = 0;
-        u16 timerCounter = 0;
-        u8 constantVolume = 0;
-
-        void writeSweep(u8 val) {
-            enabledSweep = val & Bit7;
-            sweepDividerPeriod = val & (Bit6 | Bit5 | Bit4);
-            negate = val & Bit3;
-            shiftCount = val & (Bit2 | Bit1 | Bit0);
-        }
-
-        void writeTimerLow(u8 val) {
-            timerLow = val;
-        }
-
-        void writeDutyAndEnvelope(u8 val) {
-            dutyCycle = val & (Bit7 | Bit6);
-            lengthCounterHalt = val & Bit5;
-            constant = val & Bit4;
-            envelopeDividerPeriod = val & (Bit3 | Bit2 | Bit1 | Bit0);
-            constantVolume = val & 15;
-        }
-
-        void writeLengthCounterAndTimerHigh(u8 val) {
-            //lengthCounterLoad = val & (Bit7 | Bit6 | Bit5 | Bit4 | Bit3);
-            lengthCounterLoad = lengthTable[val >> 3];
-            timerHigh = val & (Bit2 | Bit1 | Bit0);
-            //lengthValue = lengthTable[val >> 3];
-            timerCounter = static_cast<uint16_t>(timerHigh << 8) | timerLow;
-        }
-
-        void stepSweep() {
-            if (!enabledSweep) return;
-
-            sweepDividerPeriod--;  // Zmniejszanie okresu dzielnika
-
-            if (sweepDividerPeriod == 0) {
-                sweepDividerPeriod = envelopeDividerPeriod;  // Resetowanie okresu
-                int timerValue = (timerLow | static_cast<uint16_t>(timerHigh << 8));  // Połączenie low i high byte
-                int sweepValue = negate ? (timerValue - (timerValue >> shiftCount)) : (timerValue + (timerValue >> shiftCount));
-
-                if (sweepValue >= 0 && sweepValue <= 0x7FF) {
-                    timerLow = sweepValue & 0xFF;
-                    timerHigh = (sweepValue >> 8) & 0x07;  // Uaktualnienie wartości timera
-                    timerCounter = static_cast<uint16_t>(timerHigh << 8) | timerLow;
-                }
-            }
-        }
-
-        void stepLengthCounter() {
-            if (lengthCounterHalt) return;  // Jeżeli zatrzymane, nie zmniejszamy licznika
-            if (lengthCounterLoad > 0) {
-                lengthCounterLoad--;  // Zmniejszenie licznika długości
-            }
-            // if (lengthCounterLoad == 0) {
-            //     enabled = false;
-            //     // Jeśli licznik długości osiągnął 0, kanał jest wyłączony
-            //     // Możesz zaimplementować logikę, która wyłącza dźwięk lub zaktualizuje stan kanału
-            // }
-        }
-
-        void stepEnvelope() {
-            if (constant) return;  // Jeśli 'constant' jest włączony, nie zmieniamy głośności
-
-            envelopeDividerPeriod--;  // Zmniejszamy licznik
-
-            if (envelopeDividerPeriod == 0) {
-                envelopeDividerPeriod = 15;  // Resetowanie okresu
-
-                // Zmieniamy głośność obwiedni
-                if (envelopeVolume > 0) {
-                    envelopeVolume--;  // Zmniejszamy głośność
-                } else {
-                    envelopeVolume = 15;  // Zresetuj głośność do maksymalnej wartości
-                }
-            }
-        }
-
-        void stepTimer() {
-            if (--timerCounter == 0) {
-                timerCounter = static_cast<uint16_t>(timerHigh << 8) | timerLow; // Reset timera
-                phaseAccumulator = (phaseAccumulator + 1) % 8; // Aktualizacja fazy
-            }
-        }
-
-        uint8_t getSample() {
-            if (!enabled || lengthCounterLoad == 0) {
-                return 0;
-            }
-
-            uint16_t timerPeriod = static_cast<uint16_t>(timerHigh << 8) | timerLow;
-            timerPeriod = (timerPeriod + 1) * 2;
-
-            static constexpr bool dutyTable[4][8] = {
-                {0,0,0,0,0,0,0,1}, // 12.5% (0)
-                {0,0,0,0,0,0,1,1}, // 25%   (1)
-                {0,0,0,0,1,1,1,1}, // 50%   (2)
-                {0,0,1,1,1,1,1,1}  // 75%   (3)
-            };
-
-            phaseAccumulator += 1;
-            uint8_t currentPhase = (phaseAccumulator / timerPeriod) % 8;
-
-            bool waveOutput = dutyTable[dutyCycle >> 6][phaseAccumulator];
-            uint8_t volume = constant ? constantVolume : envelopeVolume;
-
-            return waveOutput ? volume : 0;
-        }
-    };
+    // struct Pulse {
+    //     //0x4000 or 0x4004
+    //     bool enabled = false;
+    //     u8 channel = 0;
+    //     u8 dutyCycle = 0;
+    //     bool lengthCounterHalt = false;
+    //     bool constant = false;
+    //     u8 envelopeDividerPeriod = 0;
+    //
+    //     //0x4001 or 0x4005
+    //     bool enabledSweep = false;
+    //     u8 sweepDividerPeriod = 0;
+    //     bool negate = false;
+    //     u8 shiftCount = 0;
+    //     u8 envelopeVolume = 0;
+    //
+    //     //0x4002 or 0x4006
+    //     u8 timerLow = 0;
+    //
+    //     //0x4003 or 0x4007
+    //     u8 lengthCounterLoad = 0;
+    //     u8 timerHigh = 0;
+    //
+    //     u32 phaseAccumulator = 0;
+    //     u16 timerCounter = 0;
+    //     u8 constantVolume = 0;
+    //
+    //     void writeSweep(u8 val);
+    //     void writeTimerLow(u8 val);
+    //     void writeDutyAndEnvelope(u8 val);
+    //     void writeLengthCounterAndTimerHigh(u8 val);
+    //     void stepSweep();
+    //     void stepLengthCounter();
+    //     void stepEnvelope();
+    //     void stepTimer();
+    //     uint8_t getSample();
+    // };
+    //
+    // struct Triangle {
+    //     bool enabled = false;
+    //     uint16_t timerPeriod = 0;
+    //     uint16_t timer = 0;
+    //     uint8_t lengthCounter = 0;
+    //     uint8_t linearCounter = 0;
+    //     uint8_t linearCounterReload = 0;
+    //     bool controlFlag = false;
+    //     bool haltFlag = false;
+    //     uint8_t sequenceIndex = 0;
+    //
+    //
+    //     void writeControl(uint8_t value) {
+    //         controlFlag = (value & 0x80) != 0;
+    //         linearCounterReload = value & 0x7F;
+    //     }
+    //
+    //     void writeTimerLow(uint8_t value) {
+    //         timerPeriod = (timerPeriod & 0xFF00) | value;
+    //     }
+    //
+    //     void writeTimerHigh(uint8_t value) {
+    //         timerPeriod = (timerPeriod & 0x00FF) | ((value & 0x07) << 8);
+    //         lengthCounter = lengthTable[value >> 3];
+    //         linearCounter = linearCounterReload;
+    //         haltFlag = true;
+    //     }
+    //
+    //     void stepTimer() {
+    //         if (timer > 0) {
+    //             --timer;
+    //         } else {
+    //             timer = timerPeriod;
+    //             if (lengthCounter > 0 && linearCounter > 0) {
+    //                 sequenceIndex = (sequenceIndex + 1) % 32;
+    //             }
+    //         }
+    //     }
+    //
+    //     void stepLinearCounter() {
+    //         if (haltFlag) {
+    //             linearCounter = linearCounterReload;
+    //         } else if (linearCounter > 0) {
+    //             --linearCounter;
+    //         }
+    //         if (!controlFlag) {
+    //             haltFlag = false;
+    //         }
+    //     }
+    //
+    //     void stepLengthCounter() {
+    //         if (!controlFlag && lengthCounter > 0) {
+    //             --lengthCounter;
+    //         }
+    //     }
+    //
+    //     uint8_t getSample() {
+    //         if (!enabled || lengthCounter == 0 || linearCounter == 0) {
+    //             return 0;
+    //         }
+    //         return triangleTable[sequenceIndex];
+    //     }
+    // };
 
 }
 

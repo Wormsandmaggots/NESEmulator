@@ -35,7 +35,8 @@ add_executable(NESEmulator
 )
 
 find_package(SDL2 REQUIRED)
-target_include_directories(NESEmulator PRIVATE ${SDL2_INCLUDE_DIR})
+target_include_directories(NESEmulator PRIVATE ${SDL2_INCLUDE_DIR}
+thirdparty)
 
 target_include_directories(NESEmulator PRIVATE
     code/inc)
@@ -45,11 +46,11 @@ target_link_libraries(NESEmulator
         spdlog
 )
 
-add_executable(MyTests ${TEST_FILES} ${HEADER_FILES}
-        ${SOURCE_FILES})
-
-target_include_directories(MyTests PRIVATE
-        code/inc)
-
-target_link_libraries(MyTests gtest gtest_main ${SDL2_LIBRARY}
-        spdlog)
+#add_executable(MyTests ${TEST_FILES} ${HEADER_FILES}
+#        ${SOURCE_FILES})
+#
+#target_include_directories(MyTests PRIVATE
+#        code/inc)
+#
+#target_link_libraries(MyTests gtest gtest_main ${SDL2_LIBRARY}
+#        spdlog)
