@@ -48,11 +48,10 @@ void CPU::cleanup() {
 
 void CPU::execute(Instruction instruction) {
     if(executeNMI) {
-        //WARNLOG("NMI executed");
         pushAddress(regs->PC);
-        pushByte(regs->P | 0x20);
+        pushByte(regs->P);
         cycle += nes_cpu_cycle_t(7);
-        regs->PC = mem->read(0xFFFA) | (mem->read(0xFFFB) << 8); // Skok do wektora NMI
+        regs->PC = mem->read(0xFFFA) | (mem->read(0xFFFB) << 8); // jump to NMI address
 
         executeNMI = false;
     }
@@ -74,7 +73,7 @@ void CPU::execute(Instruction instruction) {
             pushAddress(regs->PC);
             pushByte(regs->P);
             cycle += nes_cpu_cycle_t(7);
-            regs->PC = mem->read(0xFFFE) | (mem->read(0xFFFF) << 8); // Skok do wektora IRQ
+            regs->PC = mem->read(0xFFFE) | (mem->read(0xFFFF) << 8); // jump to IRQ address
             regs->clearStatus(InterruptDisable);
         }
 
@@ -88,32 +87,11 @@ void CPU::execute(Instruction instruction) {
 
         InstructionContext ic;
 
-        // if(instruction.opcodeAddress != 173 &&
-        //     instruction.opcodeAddress != 16 &&
-        //     instruction.opcodeAddress != 76 &&
-        //     instruction.opcodeAddress != 41 &&
-        //     instruction.opcodeAddress != 240) {
-        //     currentInstruction++;
-        //     INFOLOG(
-        //         std::to_string(currentInstruction) + ". " + opcodes::Names[instruction.opcodeAddress] + " " + std::
-        //         to_string(instruction.opcodeAddress));
-        // }
-        // else {
-        //     currentInstruction = currentInstruction;
-        // }
-        //
-        // if(instruction.opcodeAddress != 173 && instruction.opcodeAddress != 16 && regs->A == 32) {
-        //     currentInstruction = currentInstruction;
-        // }
-
         ic.mem = mem;
         ic.regs = regs;
         ic.mode = instruction.mode;
 
         regs->PC++;
-
-        // if(currentInstruction == 240000)
-        //     currentInstruction = 0;
 
         ic.value = fetch(ic.mode);
 

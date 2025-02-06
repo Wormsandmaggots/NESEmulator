@@ -117,8 +117,6 @@ public:
 
     std::vector<u8>* getSampleBuffer();
     void clearSampleBuffer();
-    bool getLocked();
-    std::mutex& getMutex();
 
 private:
     FrameCounter frameCounter;
@@ -130,12 +128,9 @@ private:
     Pulse pulse1 = Pulse(1);
     Pulse pulse2 = Pulse(2);
     Triangle triangle;
+    Noise noise;
 
     std::vector<u8> sampleBuffer;
-
-    std::mutex mutex;
-
-    bool locked = false;
 
     void stepAPU(nes_apu_cycle_t);
     void sequencer();
@@ -145,40 +140,6 @@ private:
     u8 getSample();
 
     void writeControl(u8 val);
-// public:
-//      explicit APU(Memory* sharedMemory);
-//      void step(nes_cycle_t);
-//      void out(u8* buff, u32 len);
-//      void audioCallback(void* userdata, uint8_t* buffer, int len);
-//
-// private:
-//      u8 frame = 0;
-//
-//      nes_cycle_t cycles;
-//     nes_cycle_t apuCycles;
-//      u8 audioBuffer[audioBufferSize] = {0};
-//      u64 audioBufferLength = 0;
-//     void stepAPU(nes_apu_cycle_t);
-//     void sequencer();
-//     void invokeIRQ() const;
-//     void quarterFrame();
-//     void halfFrame();
-//
-//      Pulse pulse1 = Pulse(1);
-//      Pulse pulse2 = Pulse(2);
-//      Noise noise;
-//      Triangle triangle;
-//
-//     nes_cycle_t master_cycle = nes_cycle_t(0);
-//     nes_apu_cycle_t apu_cycle = nes_apu_cycle_t(0);
-//     nes_apu_cycle_t sample_cycle = nes_apu_cycle_t(0);
-//
-//      void writeControl(u8 val);
-//      void stepLength();
-//      void stepSweep();
-//      void stepEnvelope();
-//
-//      u8 getSample();
 };
 
 

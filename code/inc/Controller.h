@@ -19,8 +19,6 @@ public:
     void setButtonState(SDL_Keycode button, bool pressed);
     void setButtonState(u8 val);
     u8 getButtonState();
-    void strobe(bool flag);
-    u8 read();
     void updateFromSDL(const SDL_Event& event); // Nowa metoda do obsługi SDL2
 
 private:
@@ -29,7 +27,6 @@ private:
     u16 controllerInputMemoryAddress = 0;
     u8 keysValue = 0;
     u8 buttonID = 0;
-    static bool strobeFlag;         // Flaga strobu
 
     void fetchInput();
 };

@@ -13,63 +13,18 @@
 
 using namespace std;
 
-void testDevices(){
-    for (uint8_t i = 0; i < SDL_GetNumAudioDrivers(); ++i) {
-        printf("Audio driver %d: %s\n", i, SDL_GetAudioDriver(i));
-    }
-
-    cout << "current audio driver is " << SDL_GetCurrentAudioDriver() << endl;
-
-    int nbDevice = SDL_GetNumAudioDevices(0);
-
-    for(int i = 0; i < nbDevice; ++i){
-        cout << "device n°" << i << ": ";
-        cout << SDL_GetAudioDeviceName(i, 0) << endl;
-    }
-}
-
-void audioCallback2(ma_device* pDevice, void* pOutput, const void* pInput, ma_uint32 frameCount) {
-    APU* apu = (APU*)pDevice->pUserData;
-    if (!apu) return;
-
-    vector<uint8_t>* sampleBuffer;// = apu->getSampleBuffer();
-    if(!sampleBuffer) return;
-
-    uint8_t* outputBuffer = (uint8_t*)pOutput;
-    size_t bufferSize = sampleBuffer->size();
-
-    // Sprawdź, czy mamy wystarczającą liczbę próbek
-    if (bufferSize >= frameCount) {
-        memcpy(outputBuffer, sampleBuffer->data(), frameCount);
-        sampleBuffer->erase(sampleBuffer->begin(), sampleBuffer->begin() + frameCount);
-    } else {
-        // Jeśli nie mamy wystarczających próbek, wypełniamy ciszą
-        memset(outputBuffer, 0, frameCount); // 128 to środek zakresu dla AUDIO_U8
-    }
-}
-
 void audioCallback(void* userdata, u8* stream, int len) {
     APU* apu = static_cast<APU*>(userdata);
     if(apu == null)
         return;
 
-    //apu->out(stream, len);
-    vector<uint8_t>* sampleBuffer = apu->getSampleBuffer();
+    vector<u8>* sampleBuffer = apu->getSampleBuffer();
     if(!sampleBuffer) return;
 
-    // Jeśli w buforze jest wystarczająco próbek, kopiujemy je do strumienia audio
-    if (sampleBuffer->size() >= len) {
+    if (sampleBuffer->size() > len) {
         memcpy(stream, sampleBuffer->data(), len);
         sampleBuffer->erase(sampleBuffer->begin(), sampleBuffer->begin() + len);
-    } else {
-        // Jeśli nie ma wystarczająco próbek, wypełniamy strumień ciszą (0)
-        //memset(stream, 128, len);
-        // memcpy(stream, apu->getSampleBuffer()->data(), apu->getSampleBuffer()->size());
-        // memset(stream + apu->getSampleBuffer()->size(), 0, len - apu->getSampleBuffer()->size());
-        // sampleBuffer->clear();
     }
-
-    //sampleBuffer.clear();
 }
 
 int main(int argc, char* argv[])
@@ -77,7 +32,7 @@ int main(int argc, char* argv[])
     CPU cpu;
     cpu.init();
 
-    Cartridge cartridge(R"(D:\Projects\roms\mariopal.nes)");
+    Cartridge cartridge(argv[1]);
 
     cartridge.load();
     cartridge.loadToMemory(cpu.getMemory());
@@ -122,10 +77,10 @@ int main(int argc, char* argv[])
     //
     // Inicjalizacja SDL Audio
     SDL_AudioSpec desiredSpec, obtainedSpec;
-    desiredSpec.freq = 44100; // Częstotliwość próbkowania
+    desiredSpec.freq = NES_CLOCK_HZ / 120; // Częstotliwość próbkowania
     desiredSpec.format = AUDIO_U8; // Format próbek (8-bit unsigned)
     desiredSpec.channels = 1; // Mono
-    desiredSpec.samples = 1024; // Rozmiar bufora audio
+    desiredSpec.samples = 4096; // Rozmiar bufora audio
     desiredSpec.callback = audioCallback; // Funkcja callback
     desiredSpec.userdata = &apu; // Przekazanie wskaźnika do APU
 
@@ -134,23 +89,6 @@ int main(int argc, char* argv[])
     cout << "play audio on device n°" << device << endl;
 
     SDL_PauseAudioDevice(device, 0);
-    //SDL_PauseAudio(0);
-
-    // ma_device_config config = ma_device_config_init(ma_device_type_playback);
-    // config.playback.format   = ma_format_s16; // AUDIO_U8 (unsigned 8-bit PCM)
-    // config.playback.channels = 1; // Mon
-    // config.sampleRate        = 48000; // 44.1kHz
-    // config.dataCallback      = audioCallback2;
-    // config.pUserData         = &apu;
-    //
-    // ma_device device;
-    // if (ma_device_init(NULL, &config, &device) != MA_SUCCESS) {
-    //     cout << "Nie udało się uruchomić miniaudio!" << endl;
-    //     return -1;
-    // }
-    //
-    // // Uruchamiamy odtwarzanie
-    // ma_device_start(&device);
 
     bool isOn = true;
     u64 prev_counter = SDL_GetPerformanceCounter();
@@ -209,7 +147,7 @@ int main(int argc, char* argv[])
         SDL_RenderPresent(renderer);
     }
 
-    //SDL_CloseAudio(); // Zamknij urządzenie audio
+    SDL_CloseAudio();
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();

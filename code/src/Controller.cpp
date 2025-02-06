@@ -6,8 +6,6 @@
 #include "Memory.h"
 #include "NESHelpers.h"
 
-bool Controller::strobeFlag = false;
-
 Controller::Controller(Memory *mem, uint16_t relatedMemoryAddress, const SDL_Scancode* keys) {
     sharedMemory = mem;
 
@@ -19,9 +17,7 @@ Controller::Controller(Memory *mem, uint16_t relatedMemoryAddress, const SDL_Sca
 
     mem->beforeWrite.push_back([this](u16 addr, u8& val) -> bool {
         if(addr == controllerInputMemoryAddress) {
-            bool prevStrobe = strobeFlag;
-            strobeFlag = (val & Bit0);
-            if(prevStrobe && !strobeFlag) {
+            if(val & Bit0) {
                 fetchInput();
             }
 
@@ -33,16 +29,11 @@ Controller::Controller(Memory *mem, uint16_t relatedMemoryAddress, const SDL_Sca
 
     mem->beforeRead.push_back([this](u16 addr) -> std::optional<u8> {
         if(addr == controllerInputMemoryAddress) {
-            if(strobeFlag)
-                fetchInput();
-
             buttonID %= 8;
 
             if(buttonID == 0) getButtonState();
 
-            //tutaj można to by troche zmienic
-
-            u8 val = 0x40 | ((keysValue >> (7 - buttonID++)) & Bit0);
+            u8 val = (keysValue >> (7 - buttonID++) & Bit0);
 
             return val;
         }
@@ -82,26 +73,6 @@ u8 Controller::getButtonState() {
     }
 
     return keysValue;
-}
-
-void Controller::strobe(bool flag) {
-    strobeFlag = flag;
-    if (strobeFlag) {
-        keysValue = 0;
-        u8 shift = 0;
-        for(auto& key : keymap) {
-            if(key.second)
-                keysValue |= (1 << shift);
-
-            shift++;
-        }
-    }
-}
-
-uint8_t Controller::read() {
-    uint8_t bit = keysValue & 1;
-    keysValue >>= 1;
-    return bit;
 }
 
 void Controller::updateFromSDL(const SDL_Event &event) {

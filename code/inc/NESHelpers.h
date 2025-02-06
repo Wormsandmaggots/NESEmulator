@@ -76,7 +76,7 @@ namespace cpu {
         Zero = 0x02,
         InterruptDisable = 0x04,
         Decimal = 0x08,
-        Break = 0x10, // also B
+        Break = 0x10,
         Always1 = 0x20,
         Overflow = 0x40,
         Negative = 0x80,
@@ -145,10 +145,10 @@ namespace ppu {
 
     //https://www.nesdev.org/wiki/PPU_registers
     struct Registers {
-        u16 V = 0;                 // Rejestr adresu (current VRAM address)
-        u16 T = 0;                 // Rejestr adresu tymczasowego
-        u8 X = 0;                  // Przesunięcie przesuwu poziomego
-        u8 W = 0;                   // Flaga przełączania adresu
+        u16 V = 0;                 // current vram address
+        u16 T = 0;                 // temp address
+        u8 X = 0;                  // x scroll
+        u8 W = 0;                   // write toggle
 
         u8* PPUControl = null;
         u8* PPUMask = null;

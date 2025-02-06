@@ -46,8 +46,6 @@ PPU::PPU(Memory* shared) {
     setOAMDMA = std::function<void(u16)>([&](u16 address) {
         if (*regs.OAMAddr == 0)
         {
-            // simple case - copy the 0x100 bytes directly
-            //_system->ram()->get_bytes(_oam.get(), PPU_OAM_SIZE, addr, PPU_OAM_SIZE);
             sharedMemory->get_bytes(regs.oam.data(), 0x100, address, 0x100);
         }
         else
@@ -392,8 +390,8 @@ void PPU::spritesPipeline() {
     }
     else if (_scanline_cycle < nes_ppu_cycle_t(321))
     {
-        uint8_t sprite_cycle = (uint8_t) (_scanline_cycle.count() - 257);
-        uint8_t sprite_id = sprite_cycle / 8;
+        auto sprite_cycle = (u8)(_scanline_cycle.count() - 257);
+        u8 sprite_id = sprite_cycle / 8;
         if (sprite_cycle % 8 == 4)
         {
             if (sprite_id < lastSpriteID)
@@ -507,16 +505,13 @@ void PPU::fetchTile() {
             _pixel_cycle[i] = get_palette_color(/* is_background = */ true, color_4_bit);
 
             uint16_t frame_addr = u16(cur_scanline) * resolution.x + xOffset++;
-            if(cur_scanline == 30)
-                cur_scanline = 30;
+
             if (frame_addr >= frameBuffer1.size())
                 continue;
             entireFrameBuffer[frame_addr] = _pixel_cycle[i];
 
             // record the palette index just for sprite 0 hit detection
             // the detection use palette 0 instead of actual color
-            if(frame_addr == 7770)
-                frame_addr = 7700;
 
             frameBufferBG[frame_addr] = tile_palette_bit01;
         }
