@@ -5,11 +5,7 @@
 #ifndef OPCODES_H
 #define OPCODES_H
 #include <functional>
-#include <variant>
 #include <vector>
-
-#include "Logger.h"
-#include "LogMessages.h"
 #include "Memory.h"
 #include "NESHelpers.h"
 

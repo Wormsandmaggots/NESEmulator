@@ -3,13 +3,12 @@
 //
 
 #include "CPU.h"
-
-#include <codecvt>
 #include <iostream>
 
 #include "Opcodes.h"
 #include "PPU.h"
 #include "Utils.h"
+#include "LogMessages.h"
 
 bool CPU::executeNMI = false;
 u16 CPU::OMDDMAAddress = 0;
@@ -56,10 +55,8 @@ void CPU::execute(Instruction instruction) {
         executeNMI = false;
     }
     else if(executeDMA) {
-        //WARNLOG("EXECUTE OAMDMA");
         PPU::setOAMDMA(OMDDMAAddress);
 
-        // The entire DMA takes 513 or 514 cycles
         // http://wiki.nesdev.com/w/index.php/PPU_registers#OAMDMA
         if (cycle % 2 == nes_cpu_cycle_t(0))
             cycle += nes_cpu_cycle_t(514);
@@ -150,28 +147,20 @@ u16 CPU::fetchAbsoluteY() {
 
 u16 CPU::fetchIndirect() const {
     const u16 pointer = (*mem)[regs->PC++] | (static_cast<u16>((*mem)[regs->PC++]) << 8);
-    //const u16 address = (*mem)[pointer] | ((*mem)[(pointer & 0xFF00) | ((pointer + 1) & 0xFF)] << 8);
     if((pointer & 0xff) == 0xff) {
         return (*mem)[pointer] + (static_cast<u16>((*mem)[pointer & 0xff00]) << 8);
     }
 
     return (*mem)[pointer] | (static_cast<u16>((*mem)[pointer + 1]) << 8);
-    const u16 address = opcodes::mergeToU16(pointer, (pointer + 1) % 0x100);
-    return address;
 }
 
 u16 CPU::fetchIndirectIndexedX() const {
     const u8 pointer = (*mem)[regs->PC++];
-    // const u16 address = (*mem)[pointer] | ((*mem)[(pointer + 1) & 0xFF] << 8);
-    // return address;
     u16 val = (*mem)[(pointer + regs->X) & 0xff] + (static_cast<u16>((*mem)[(pointer + regs->X + 1) & 0xff]) << 8);
     return val;
 }
 
 u16 CPU::fetchIndirectIndexedY() {
-    // const u8 pointer = (*mem)[regs->PC++];
-    // const u16 address = ((*mem)[pointer] | ((*mem)[(pointer + 1) & 0xFF] << 8)) + regs->Y;
-    // return (*mem)[address];
     const u8 pointer = (*mem)[regs->PC++];
     u16 addr = (*mem)[pointer] + (static_cast<u16>((*mem)[(pointer + 1) & 0xff]) << 8);
     u16 newAddr = addr + regs->Y;
@@ -188,41 +177,12 @@ u16 CPU::fetchImplicit() const {
 }
 
 u16 CPU::fetchRelative() const {
-    //const i8 offset = static_cast<i8>(mem->read(regs->PC++));
     return regs->PC++;
 }
 
-void CPU::handleInterrupt() {
-    if (executeNMI) {
-        // Zapisz stan procesora
-        pushAddress(regs->PC);
-        pushStatus(false);
-        regs->PC = mem->read(0xFFFA) | (mem->read(0xFFFB) << 8); // Skok do wektora NMI
-        // Zresetuj flagę przerwań
-        regs->setStatus(InterruptDisable);
-        clearVBlankFlag();
-
-        executeNMI = false;
-        return;
-    }
-
-    if(executeDMA) {
-        PPU::setOAMDMA(OMDDMAAddress);
-        //_system->ppu()->oam_dma(_dma_addr);
-
-        // The entire DMA takes 513 or 514 cycles
-        // http://wiki.nesdev.com/w/index.php/PPU_registers#OAMDMA
-        if (cycle % 2 == nes_cpu_cycle_t(0))
-            cycle += nes_cpu_cycle_t(514);
-        else
-            cycle += nes_cpu_cycle_t(513);
-    }
-}
-
 void CPU::pushStatus(bool setBreak) {
-    // Zapisz flagi statusu na stosie
     regs->setStatus(Break, setBreak);
-    pushByte(regs->P); // Ustawienie flagi B
+    pushByte(regs->P);
 }
 
 bool CPU::nmiEnabled() const {
@@ -240,13 +200,11 @@ void CPU::clearVBlankFlag() {
 }
 
 void CPU::pushAddress(uint16_t address) {
-    // Zapisz adres (adres PC) na stosie
-    pushByte(address >> 8);  // Zapisz wyższy bajt
-    pushByte(address & 0xFF); // Zapisz niższy bajt
+    pushByte(address >> 8);
+    pushByte(address & 0xFF);
 }
 
 void CPU::pushByte(uint8_t byte) {
-    // Zapisz bajt na stosie (dekrementacja SP)
     mem->write(0x0100 + regs->S, byte);
     regs->S--;
 }

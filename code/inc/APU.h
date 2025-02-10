@@ -50,38 +50,6 @@ private:
 
 };
 
-class Noise {
-public:
-    friend class APU;
-
-    Noise();
-
-    void writeControl(u8);
-    void writePeriod(u8);
-    void writeLength(u8);
-    void stepTimer();
-    void stepEnvelope();
-    void stepLength();
-
-    u8 out() const;
-
-private:
-    bool enabled;
-    bool mode;
-    uint16_t shiftRegister;
-    bool lengthEnabled;
-    uint8_t lengthValue;
-    uint16_t timerPeriod;
-    uint16_t timerValue;
-    bool envelopeEnabled;
-    bool envelopeLoop;
-    bool envelopeStart;
-    uint8_t envelopePeriod;
-    uint8_t envelopeValue;
-    uint8_t envelopeVolume;
-    uint8_t constantVolume;
-};
-
 class Triangle {
 public:
     friend class APU;
@@ -128,7 +96,6 @@ private:
     Pulse pulse1 = Pulse(1);
     Pulse pulse2 = Pulse(2);
     Triangle triangle;
-    Noise noise;
 
     std::vector<u8> sampleBuffer;
 

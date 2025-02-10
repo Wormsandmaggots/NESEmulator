@@ -640,25 +640,12 @@ void opcodes::BRK(InstructionContext& ic) {
 }
 
 void opcodes::ORA(InstructionContext& ic) {
-    //u8 operand = ic.value.value_or(0);
-    //u8 operand = ic.get<u8>();
-    // u16 addr = 0;
-    // if(ic.holds<u16>()) {
-    //     addr = ic.get<u16>();
-    // }
-    // else {
-    //     addr = ic.get<u8>();
-    // }
-
-    // Wykonaj operację logicznego OR
     ic.regs->SetA(ic.regs->A | ic.getValueFromAddress());
 
     setZN(ic, ic.regs->A);
 }
 
 void opcodes::ASL(InstructionContext& ic) {
-    // Pobierz wartość (z akumulatora lub pamięci)
-
     u8 operand = ic.getValueFromAddress();
 
     if(ic.mode == Accumulator)
@@ -673,7 +660,6 @@ void opcodes::ASL(InstructionContext& ic) {
 
     ic.setStatus(Carry, operand & Bit7);
 
-    // Ustaw flagi Z i N
     setZN(ic, result);
 }
 
@@ -687,14 +673,10 @@ void opcodes::PHP(InstructionContext& ic) {
 
 void opcodes::BPL(InstructionContext& ic) {
     if (!ic.getStatus(Negative)) {
-        // Oblicz nowy adres PC z uwzględnieniem offsetu
-        //u16 val = ic.get<u16>();
-        i8 offset = static_cast<i8>(ic.getValueFromAddress()); // Offset jest zapisywany jako 8-bitowa liczba ze znakiem
+        i8 offset = static_cast<i8>(ic.getValueFromAddress());
         u16 newPC = static_cast<u16>(ic.regs->PC + offset);
 
-        // Ustaw nowy licznik programowy
         ic.regs->PC = newPC;
-        //ic.regs->PC = ic.get<u16>();
     }
 }
 
@@ -705,67 +687,48 @@ void opcodes::CLC(InstructionContext& ic) {
 void opcodes::JSR(InstructionContext& ic) {
     u16 address = ic.value;
 
-    // Oblicz adres powrotu (PC - 1, ponieważ JSR zużywa kolejny bajt po wywołaniu)
     u16 returnAddress = ic.regs->PC - 1;
 
-    // Zapisz adres powrotu na stosie (najpierw starszy bajt, potem młodszy bajt)
-    ic.write(0x0100 + ic.regs->S--, (returnAddress >> 8) & 0xFF); // Starszy bajt
-    ic.write(0x0100 + ic.regs->S--, returnAddress & 0xFF);        // Młodszy bajt
+    ic.write(0x0100 + ic.regs->S--, (returnAddress >> 8) & 0xFF);
+    ic.write(0x0100 + ic.regs->S--, returnAddress & 0xFF);
 
-    // Ustaw licznik programu na docelowy adres
     ic.regs->PC = address;
 }
 
 void opcodes::AND(InstructionContext& ic) {
-    // Pobierz operand z InstructionContext&
     u8 operand = ic.getValueFromAddress();
 
-    // Wykonaj operację bitowego AND z akumulatorem
     ic.regs->SetA(ic.regs->A & operand);
 
-    // Ustaw flagi Zero (Z) i Negative (N) na podstawie wyniku
     setZN(ic, ic.regs->A);
 }
 
 void opcodes::BIT(InstructionContext& ic) {
-    // Pobierz operand z InstructionContext&
     u8 operand = ic.getValueFromAddress();
 
-    // Testuj, czy AND między A i operandem daje 0 (ustawienie flagi Z)
     ic.setStatus(Zero, (ic.regs->A & operand) == 0);
 
-    // Ustaw flagę V (Overflow) na podstawie bitu 6 operandu
     ic.setStatus(Overflow, operand & Bit6);
 
-    // Ustaw flagę N (Negative) na podstawie bitu 7 operandu
     ic.setStatus(Negative, operand & Bit7);
 }
 
 void opcodes::ROL(InstructionContext& ic) {
-    // Pobierz operand
     u8 operand = ic.getValueFromAddress();
 
-    // Przechowaj poprzednią wartość Carry
     bool carryIn = ic.getStatus(StatusFlag::Carry);
 
-    // Oblicz nowy wynik
     u8 result = (operand << 1) | (carryIn ? 1 : 0);
 
-    // Zapisz wynik
     if (ic.mode != AddressingMode::Accumulator) {
         ic.write(ic.value, result);
     } else {
         ic.regs->SetA(result);
-        //ic.regs->A = static_cast<u8>(result);
     }
 
-    // Ustaw flagę Carry na podstawie najbardziej znaczącego bitu operandu
     ic.setStatus(StatusFlag::Carry, operand & Bit7);
 
-    // Ustaw flagi Zero i Negative na podstawie nowego wyniku
     setZN(ic, result);
-    // ic.setStatus(StatusFlag::Zero, (result & 0xFF) == 0);
-    // ic.setStatus(StatusFlag::Negative, result & Bit7);
 }
 
 void opcodes::PLP(InstructionContext& ic) {
@@ -778,13 +741,10 @@ void opcodes::PLP(InstructionContext& ic) {
 
 void opcodes::BMI(InstructionContext& ic) {
     if (ic.getStatus(Negative)) {
-        // Wartość przesunięcia adresu
         i8 offset = static_cast<i8>(ic.getValueFromAddress());
 
-        // Wylicz nowy adres
         u16 newPC = ic.regs->PC + offset;
 
-        // Zaktualizuj licznik programu
         ic.regs->PC = newPC;
     }
 }
@@ -809,40 +769,30 @@ void opcodes::RTI(InstructionContext& ic) {
 }
 
 void opcodes::EOR(InstructionContext& ic) {
-    // Pobierz operand z kontekstu
     u8 operand = ic.getValueFromAddress();
 
-    // Wykonaj operację XOR
     ic.regs->SetA(ic.regs->A ^ operand);
-    //ic.regs->A ^= operand;
 
-    // Ustawienie odpowiednich flag statusu (Zero, Negative)
     setZN(ic, ic.regs->A);
 }
 
 void opcodes::LSR(InstructionContext& ic) {
-    // Pobierz wartość operandu
     u8 operand = ic.getValueFromAddress();
 
     if(ic.mode == Accumulator)
         operand = ic.value;
 
-    // Ustaw flagę Carry na podstawie najmłodszego bitu
     bool carry = operand & Bit0;
     ic.setStatus(Carry, carry);
 
-    // Przesuń bity w prawo, najstarszy bit zostaje 0
     u8 result = operand >> 1;
 
-    // Jeśli operacja była bezpośrednio na akumulatorze, zaktualizuj A
     if (ic.mode == AddressingMode::Accumulator) {
         ic.regs->SetA(result);
     } else {
-        // Zapisz wynik z powrotem do pamięci, jeśli operand był w pamięci
         ic.write(ic.value, result);
     }
 
-    // Ustaw flagi Zero (Z) i Negative (N) na podstawie wyniku
     setZN(ic, result);
 }
 
@@ -852,22 +802,17 @@ void opcodes::PHA(InstructionContext& ic) {
 }
 
 void opcodes::JMP(InstructionContext& ic) {
-    // Pobierz adres docelowy z InstructionContext&
     u16 targetAddress = ic.value;
 
-    // Ustaw licznik programu na adres docelowy
     ic.regs->PC = targetAddress;
 }
 
 void opcodes::BVC(InstructionContext& ic) {
     if (!ic.getStatus(StatusFlag::Overflow)) {
-        // Pobierz przesunięcie jako wartość ze znakiem (s8)
         i8 offset = static_cast<i8>(ic.getValueFromAddress());
 
-        // Oblicz nowy adres na podstawie offsetu
         u16 newAddress = ic.regs->PC + offset;
 
-        // Ustaw licznik programu na nowy adres
         ic.regs->PC = newAddress;
     }
 }
@@ -888,22 +833,16 @@ void opcodes::RTS(InstructionContext& ic) {
 void opcodes::ADC(InstructionContext& ic) {
     u8 operand = ic.getValueFromAddress();
 
-    // Pobierz wartość akumulatora (A) i flagi Carry (C)
     u8 accumulator = ic.regs->A;
     u8 carry = ic.getStatus(StatusFlag::Carry) ? 1 : 0;
 
-    // Wykonaj dodawanie z uwzględnieniem Carry
     u16 result = static_cast<u16>(accumulator) + static_cast<u16>(operand) + static_cast<u16>(carry);
 
-    // Zaktualizuj flagi:
-    // Flaga Carry (C) - ustawiona, jeśli wynik przekracza 8 bitów
     ic.setStatus(Carry, result > 0xFF);
 
-    // Flaga Overflow (V) - ustawiona, jeśli wystąpił błąd liczby ze znakiem
     bool overflow = (~(accumulator ^ operand) & (accumulator ^ static_cast<u8>(result)) & Bit7);
     ic.setStatus(StatusFlag::Overflow, overflow);
 
-    // Przypisz wynik do akumulatora (A) i ustaw flagi Z i N
     ic.regs->SetA(static_cast<u8>(result));
     setZN(ic, ic.regs->A);
 }
@@ -911,38 +850,30 @@ void opcodes::ADC(InstructionContext& ic) {
 void opcodes::PLA(InstructionContext& ic) {
     ic.regs->S++;
     ic.regs->SetA(ic.read(0x100 + ic.regs->S));
-    //ic.regs->A = ic.read(0x100 + ic.regs->S++);
 
     setZN(ic, ic.regs->A);
 }
 
 void opcodes::ROR(InstructionContext& ic) {
-    // Pobierz operand (jeśli dotyczy)
     u8 operand = ic.getValueFromAddress();
 
-    // Pobierz flagę Carry (C)
     u8 carry = ic.regs->P & StatusFlag::Carry;
-    u8 result = (operand >> 1) | (carry << 7);  // Bit 7 = Carry, bit 0 zyskuje Carry
+    u8 result = (operand >> 1) | (carry << 7);
 
     if(ic.mode == Accumulator)
         ic.regs->A = result;
     else
         ic.write(ic.value, result);
 
-    // Ustaw flagi:
-    ic.setStatus(StatusFlag::Carry, (operand & Bit0) != 0); // Zaktualizuj Carry na podstawie bitu 0
-    setZN(ic, result); // Ustaw flagi Zero i Negative na podstawie wyniku
+    ic.setStatus(StatusFlag::Carry, (operand & Bit0) != 0);
+    setZN(ic, result);
 }
 
 void opcodes::BVS(InstructionContext& ic) {
     if (ic.getStatus(Overflow)) {
-        // Oblicz adres skoku
-        // W trybie bezpośrednim bierzemy wartość z 'value', która zawiera przesunięcie skoku
-        // Adres skoku to bieżący PC + przesunięcie (relatywne)
-        i8 offset = static_cast<i8>(ic.getValueFromAddress()); // Pobierz offset skoku (może być dodatni lub ujemny)
+        i8 offset = static_cast<i8>(ic.getValueFromAddress());
         u16 targetAddress = ic.regs->PC + offset;
 
-        // Zaktualizuj PC na nowy adres
         ic.regs->PC = targetAddress;
     }
 }
@@ -952,33 +883,23 @@ void opcodes::SEI(InstructionContext& ic) {
 }
 
 void opcodes::STA(InstructionContext& ic) {
-    // Pobierz wartość adresu, gdzie należy zapisać zawartość akumulatora
     u16 address = 0;
 
-    // if(ic.mode != Absolute && ic.mode != AbsoluteIndexedY && ic.mode != IndexedIndirectY)
-    //     address = ic.getValueFromAddress(); // Adres jest przechowywany w value, może to być u16
-    // else
-    //     address = ic.value;
     address = ic.value;
 
-        // Zapisz wartość akumulatora do pamięci
     ic.write(address, ic.regs->A);
     ic.forcePageCross = true;
 }
 
 void opcodes::STY(InstructionContext& ic) {
-    // Pobierz wartość adresu, pod który należy zapisać zawartość rejestru Y
-    //u16 address = ic.get<u16>(); // Adres jest przechowywany w value
     u16 addr = ic.value;
 
-    // Zapisz wartość rejestru Y do pamięci
     ic.write(addr, ic.regs->Y);
 }
 
 void opcodes::STX(InstructionContext& ic) {
-    u16 address = ic.value; // Adres jest przechowywany w value
+    u16 address = ic.value;
 
-    // Zapisz wartość rejestru Y do pamięci
     ic.write(address, ic.regs->X);
 }
 
@@ -989,19 +910,17 @@ void opcodes::DEY(InstructionContext& ic) {
 
 void opcodes::TXA(InstructionContext& ic) {
     ic.regs->SetA(ic.regs->X);
-    //ic.regs->A = ic.regs->X;
     setZN(ic, ic.regs->A);
 }
 
 void opcodes::BCC(InstructionContext& ic) {
     if (!ic.getStatus(Carry)) {
-        ic.regs->PC += static_cast<i8>(ic.getValueFromAddress()); // Przesunięcie jest w trybie relatywnym
+        ic.regs->PC += static_cast<i8>(ic.getValueFromAddress());
     }
 }
 
 void opcodes::TYA(InstructionContext& ic) {
     ic.regs->SetA(ic.regs->Y);
-    //ic.regs->A = ic.regs->Y;
     setZN(ic, ic.regs->A);
 }
 
@@ -1010,39 +929,26 @@ void opcodes::TXS(InstructionContext& ic) {
 }
 
 void opcodes::LDY(InstructionContext& ic) {
-    // Pobierz wartość z pamięci lub natychmiastową
     u8 value = ic.getValueFromAddress();
 
-    // Załaduj wartość do rejestru Y
     ic.regs->Y = value;
 
-    // Ustaw flagi Z i N
     setZN(ic, ic.regs->Y);
 }
 
 void opcodes::LDA(InstructionContext& ic) {
-    // Pobierz wartość z pamięci lub natychmiastową
     u8 value = ic.getValueFromAddress();
 
-    // Załaduj wartość do akumulatora A
-    //ic.regs->A = value;
     ic.regs->SetA(value);
 
-    if(ic.regs->A == 32)
-        ic.regs->A = 32;
-
-    // Ustaw flagi Z i N
     setZN(ic, ic.regs->A);
 }
 
 void opcodes::LDX(InstructionContext& ic) {
-    // Pobierz wartość z pamięci lub natychmiastową
     u8 value = ic.getValueFromAddress();
 
-    // Załaduj wartość do rejestru X
     ic.regs->X = value;
 
-    // Ustaw flagi Z i N
     setZN(ic, ic.regs->X);
 }
 
@@ -1058,10 +964,8 @@ void opcodes::TAX(InstructionContext& ic) {
 
 void opcodes::BCS(InstructionContext& ic) {
     if (ic.getStatus(StatusFlag::Carry)) {
-        // Pobierz offset (operand jest w formacie 2's complement)
         const i8 offset = static_cast<i8>(ic.getValueFromAddress());
 
-        // Oblicz nowy PC (uwzględniając offset)
         ic.regs->PC += offset;
     }
 }
@@ -1076,64 +980,49 @@ void opcodes::TSX(InstructionContext& ic) {
 }
 
 void opcodes::CPY(InstructionContext& ic) {
-    // Pobierz operand
     u8 operand = ic.getValueFromAddress();
 
-    // Wykonaj operację porównania
     u8 Y = ic.regs->Y;
     u16 result = static_cast<u16>(Y) - static_cast<u16>(operand);
 
-    // Ustaw flagę Carry, jeśli Y >= operand
     ic.setStatus(StatusFlag::Carry, Y >= operand);
 
-    // Ustaw flagę Zero, jeśli wynik jest równy 0
     ic.setStatus(StatusFlag::Zero, (result & 0xFF) == 0);
 
-    // Ustaw flagę Negative na podstawie najwyższego bitu wyniku
     ic.setStatus(StatusFlag::Negative, result & Bit7);
 }
 
 void opcodes::CMP(InstructionContext& ic) {
-    // Pobierz operand
     u8 operand = ic.getValueFromAddress();
 
-    // Wykonaj operację porównania
     u8 A = ic.regs->A;
     u8 result = A - operand;
 
-    // Ustaw flagę Carry, jeśli A >= operand
     ic.setStatus(StatusFlag::Carry, A >= operand);
 
     setZN(ic, result);
 }
 
 void opcodes::DEC(InstructionContext& ic) {
-    // Odczytaj wartość z pamięci pod wskazanym adresem
-    u16 address = ic.value; // Adres do modyfikacji
+    u16 address = ic.value;
     u8 value = ic.read(address);
 
-    // Zmniejsz wartość o 1
     u8 result = value - 1;
 
-    // Zapisz wynik z powrotem do pamięci
     ic.write(address, result);
 
     setZN(ic, result);
 }
 
 void opcodes::CLB(InstructionContext& ic) {
-    // Pobierz adres i bit do wyczyszczenia
-    u16 address = ic.value; // Adres pamięci
-    u8 bitToClear = ic.value; // Numer bitu (0-7)
+    u16 address = ic.value;
+    u8 bitToClear = ic.value;
 
-    // Odczytaj wartość z pamięci
     u8 value = ic.read(address);
 
-    // Wyczyść wskazany bit (maskowanie)
-    u8 mask = ~(1 << bitToClear); // Przykładowo: bit 3 -> maska 0b11110111
+    u8 mask = ~(1 << bitToClear);
     value &= mask;
 
-    // Zapisz zmodyfikowaną wartość z powrotem do pamięci
     ic.write(address, value);
 
     setZN(ic, value);
@@ -1150,27 +1039,22 @@ void opcodes::DEX(InstructionContext& ic) {
 }
 
 void opcodes::CPX(InstructionContext& ic) {
-    u8 operand = ic.getValueFromAddress(); // Pobierz wartość, z którą porównujemy
+    u8 operand = ic.getValueFromAddress();
 
-    // Porównanie X z operandem
     u8 result = ic.regs->X - operand;
 
-    // Ustawienie flag
-    // N (Negative) - jeśli wynik jest ujemny (zdefiniowany w Twoim rejestrze)
     if (result & Bit7) {
         ic.setStatus(StatusFlag::Negative);
     } else {
         ic.clearStatus(StatusFlag::Negative);
     }
 
-    // Z (Zero) - jeśli X i operand są równe
     if (result == 0) {
         ic.setStatus(StatusFlag::Zero);
     } else {
         ic.clearStatus(StatusFlag::Zero);
     }
 
-    // C (Carry) - jeśli nie ma pożyczki (tzn. jeśli X >= operand)
     if (ic.regs->X >= operand) {
         ic.setStatus(StatusFlag::Carry);
     } else {
@@ -1179,51 +1063,42 @@ void opcodes::CPX(InstructionContext& ic) {
 }
 
 void opcodes::SBC(InstructionContext& ic) {
-    u8 operand = ic.getValueFromAddress();  // Pobierz operand (wartość z pamięci)
+    u8 operand = ic.getValueFromAddress();
 
-    // Uwzględnienie flagi Carry: jeżeli Carry = 1, odejmujemy 0, w przeciwnym razie 1
     u8 carryAdjustment = ic.getStatus(StatusFlag::Carry) ? 0 : 1;
     u8 result = ic.regs->A - operand - carryAdjustment;
 
-    // Flaga C (Carry): jeśli A >= operand + carryAdjustment, to Carry = 1, w przeciwnym razie 0
     if (ic.regs->A >= operand + carryAdjustment) {
         ic.setStatus(StatusFlag::Carry);
     } else {
         ic.clearStatus(StatusFlag::Carry);
     }
 
-    // Flaga Z (Zero): jeśli wynik jest równy 0, to flaga Zero = 1
     if (result == 0) {
         ic.setStatus(StatusFlag::Zero);
     } else {
         ic.clearStatus(StatusFlag::Zero);
     }
 
-    // Flaga N (Negative): wynik będzie ujemny, jeśli najwyższy bit jest ustawiony (wynik < 0)
     if (result & Bit7) {
         ic.setStatus(StatusFlag::Negative);
     } else {
         ic.clearStatus(StatusFlag::Negative);
     }
 
-    // Flaga V (Overflow): jeśli wynik przekroczył zakres (overflow), flaga jest ustawiana
     if ((ic.regs->A ^ operand) & Bit7 && (ic.regs->A ^ result) & Bit7) {
         ic.setStatus(StatusFlag::Overflow);
     } else {
         ic.clearStatus(StatusFlag::Overflow);
     }
 
-    // Zapisz wynik w rejestrze A
     ic.regs->SetA(result);
-    //ic.regs->A = result;
 }
 
 void opcodes::BEQ(InstructionContext& ic) {
     if (ic.getStatus(StatusFlag::Zero)) {
-        // Jeśli tak, wykonaj skok do adresu zawartego w operandzie
-        u16 targetAddress = ic.regs->PC + static_cast<i8>(ic.getValueFromAddress()); // Operand to offset od obecnego PC
+        u16 targetAddress = ic.regs->PC + static_cast<i8>(ic.getValueFromAddress());
 
-        // Ustaw PC na docelowy adres
         ic.regs->PC = targetAddress;
     }
 }
@@ -1233,18 +1108,14 @@ void opcodes::SED(InstructionContext& ic) {
 }
 
 void opcodes::INC(InstructionContext& ic) {
-    // Odczytujemy operand (wartość, którą chcemy inkrementować)
     u16 addr = ic.value;
 
-    u8 operand = ic.read(addr);  // Odczytujemy wartość z pamięci pod adresem zawartym w value
+    u8 operand = ic.read(addr);
 
-    // Zwiększ wartość o 1
     operand++;
 
-    // Zapisz wynik z powrotem do pamięci
     ic.write(addr, operand);
 
-    // Ustaw odpowiednie flagi statusu (Zero, Negative)
     setZN(ic, operand);
 }
 
@@ -1260,13 +1131,9 @@ void opcodes::INY(InstructionContext& ic) {
 
 void opcodes::BNE(InstructionContext& ic) {
     if (!ic.getStatus(StatusFlag::Zero)) {
-        // Jeżeli flaga Zero nie jest ustawiona (wynik operacji był różny od 0),
-        // to wykonaj skok (Branch). Nowy adres skoku jest zawarty w ic.value.
 
-        // Zaktualizuj program counter (PC), wykonując skok
         u16 branchAddress = ic.regs->PC + static_cast<i8>(ic.getValueFromAddress());
 
-        // Wykonaj skok
         ic.regs->PC = branchAddress;
     }
 }

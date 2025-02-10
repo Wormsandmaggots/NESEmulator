@@ -177,122 +177,6 @@ u8 Pulse::out() const {
     return constantVolume;
 }
 
-Noise::Noise() {
-    enabled = false;
-    mode = false;
-    shiftRegister = 1;
-    lengthEnabled = false;
-    lengthValue = 0;
-    timerPeriod = 0;
-    timerValue = 0;
-    envelopeEnabled = false;
-    envelopeLoop = false;
-    envelopeStart = false;
-    envelopePeriod = 0;
-    envelopeValue = 0;
-    envelopeVolume = 0;
-    constantVolume = 0;
-}
-
-void Noise::writeControl(uint8_t value) {
-    lengthEnabled = ((value >> 5) & 1) == 0;
-    envelopeLoop = ((value >> 5) & 1) == 1;
-    envelopeEnabled = ((value >> 4) & 1) == 0;
-    envelopePeriod = value & 15;
-    constantVolume = value & 15;
-    envelopeStart = true;
-}
-
-void Noise::writePeriod(uint8_t value) {
-    mode = (value & 0x80) == 0x80;
-    timerPeriod = noiseTable[value & 0x0f];
-}
-
-void Noise::writeLength(uint8_t value) {
-    lengthValue = lengthTable[value >> 3];
-    envelopeStart = true;
-}
-
-void Noise::stepTimer() {
-    if (timerValue == 0)
-    {
-        timerValue = timerPeriod;
-        uint8_t shift;
-        if (mode)
-        {
-            shift = 6;
-        }
-        else
-        {
-            shift = 1;
-        }
-        uint16_t b1 = shiftRegister & 1;
-        uint16_t b2 = (shiftRegister >> shift) & 1;
-        shiftRegister >>= 1;
-        shiftRegister |= (b1 ^ b2) << 14;
-    }
-    else
-    {
-        timerValue--;
-    }
-}
-
-void Noise::stepEnvelope() {
-    if (envelopeStart)
-    {
-        envelopeVolume = 15;
-        envelopeValue = envelopePeriod;
-        envelopeStart = false;
-    }
-    else if (envelopeValue > 0)
-    {
-        envelopeValue--;
-    }
-    else
-    {
-        if (envelopeVolume > 0)
-        {
-            envelopeVolume--;
-        }
-        else if (envelopeLoop)
-        {
-            envelopeVolume = 15;
-        }
-        envelopeValue = envelopePeriod;
-    }
-}
-
-void Noise::stepLength() {
-    if (lengthEnabled && lengthValue > 0)
-    {
-        lengthValue--;
-    }
-}
-
-uint8_t Noise::out() const {
-    if (!enabled)
-    {
-        return 0;
-    }
-
-    if (lengthValue == 0)
-    {
-        return 0;
-    }
-
-    if ((shiftRegister & 1) == 1)
-    {
-        return 0;
-    }
-
-    if (envelopeEnabled)
-    {
-        return envelopeVolume;
-    }
-
-    return constantVolume;
-}
-
 Triangle::Triangle() {
     enabled = false;
     lengthEnabled = false;
@@ -412,16 +296,6 @@ APU::APU(Memory *sharedMemory) {
             case 0x400B:
                 triangle.writeTimerHigh(val);
                 break;
-            // case 0x400c:
-            //     noise.writeControl(val);
-            //     break;
-            // case 0x400d:
-            // case 0x400e:
-            //     noise.writePeriod(val);
-            //     break;
-            // case 0x400f:
-            //     noise.writeLength(val);
-            //     break;
             case 0x4015:
                 writeControl(val);
                 break;
@@ -536,7 +410,6 @@ void APU::writeControl(uint8_t val) {
     pulse1.enabled = (val & 1) == 1;
     pulse2.enabled = (val & 2) == 2;
     triangle.enabled = (val & 4) == 4;
-    //noise.enabled = (val & 8) == 8;
     if (!pulse1.enabled)
     {
         pulse1.lengthValue = 0;
@@ -549,28 +422,4 @@ void APU::writeControl(uint8_t val) {
     {
         triangle.lengthValue = 0;
     }
-    // if (!noise.enabled)
-    // {
-    //     noise.lengthValue = 0;
-    // }
 }
-
-// void APU::quarterFrame() {
-//     pulse1.stepLength();
-//     pulse2.stepLength();
-//     triangle.stepLength();
-//     //noise.stepLength();
-//     // dmc.stepLengthCounter();
-// }
-
-// void APU::halfFrame() {
-//     pulse1.stepEnvelope();
-//     pulse2.stepEnvelope();
-//     triangle.stepCounter();
-//     //triangle.stepLinearCounter();
-//     //noise.stepEnvelope();
-//
-//     // Update sweep for pulse channels (every 1/2 frame)
-//     pulse1.stepSweep();
-//     pulse2.stepSweep();
-// }

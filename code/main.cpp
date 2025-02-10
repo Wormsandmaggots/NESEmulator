@@ -1,5 +1,4 @@
 #include <iostream>
-#define MINIAUDIO_IMPLEMENTATION
 #include <SDL.h>
 #include "Cartridge.h"
 #include "Controller.h"
@@ -9,7 +8,6 @@
 #include "PPU.h"
 #include "NESHelpers.h"
 #include "APU.h"
-#include "miniaudio.h"
 
 using namespace std;
 
@@ -65,7 +63,6 @@ int main(int argc, char* argv[])
     SDL_RenderClear(renderer);
     SDL_RenderPresent(renderer);
 
-    // Stwórz teksturę dla bufora ramki
     SDL_Texture* texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STREAMING,
                                               resolution.x, resolution.y);
     if (!texture) {
@@ -73,16 +70,13 @@ int main(int argc, char* argv[])
         return -1;
     }
 
-    // testDevices();
-    //
-    // Inicjalizacja SDL Audio
     SDL_AudioSpec desiredSpec, obtainedSpec;
-    desiredSpec.freq = NES_CLOCK_HZ / 120; // Częstotliwość próbkowania
-    desiredSpec.format = AUDIO_U8; // Format próbek (8-bit unsigned)
-    desiredSpec.channels = 1; // Mono
-    desiredSpec.samples = 4096; // Rozmiar bufora audio
-    desiredSpec.callback = audioCallback; // Funkcja callback
-    desiredSpec.userdata = &apu; // Przekazanie wskaźnika do APU
+    desiredSpec.freq = NES_CLOCK_HZ / 120;
+    desiredSpec.format = AUDIO_U8;
+    desiredSpec.channels = 1;
+    desiredSpec.samples = 4096;
+    desiredSpec.callback = audioCallback;
+    desiredSpec.userdata = &apu;
 
     SDL_AudioDeviceID device;
     device = SDL_OpenAudioDevice(SDL_GetAudioDeviceName(0, 0), 0, &desiredSpec, &obtainedSpec, 0);

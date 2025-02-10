@@ -8,7 +8,6 @@
 #include <cassert>
 
 #include "Logger.h"
-#include "LogMessages.h"
 #include "Memory.h"
 #include "Types.h"
 #include "NESHelpers.h"
