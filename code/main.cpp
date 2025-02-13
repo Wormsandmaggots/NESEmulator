@@ -30,9 +30,11 @@ int main(int argc, char* argv[])
     CPU cpu;
     cpu.init();
 
+    assert(argc > 1);
+
     Cartridge cartridge(argv[1]);
 
-    cartridge.load();
+    assert(cartridge.load());
     cartridge.loadToMemory(cpu.getMemory());
     cpu.reset();
 

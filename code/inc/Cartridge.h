@@ -55,7 +55,7 @@ public:
     bool load();
 
     const NESFile* getNESFile() const;
-    void loadToMemory(Memory* mem) const;
+    void loadToMemory(Memory* mem);
     void loadToVRam(PPU* ppu) const;
 
     nes_mapper_flags getMirroring() const;

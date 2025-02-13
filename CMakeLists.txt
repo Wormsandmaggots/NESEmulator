@@ -5,7 +5,7 @@ cmake_minimum_required (VERSION 3.7.2)
 
 project(NESEmulator)
 set(CMAKE_CXX_STANDARD 26)
-
+set(CMAKE_CXX_FLAGS_RELEASE "-Og" CACHE STRING "Optimization level for Release" FORCE)
 # TODO: Add tests and install targets if needed.
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
 

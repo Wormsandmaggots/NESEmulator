@@ -24,9 +24,11 @@ bool Cartridge::load() {
     this->path = path;
 
     std::ifstream file;
-    file.exceptions(std::ifstream::failbit | std::ifstream::badbit);
     file.open(path, std::ifstream::in | std::ifstream::binary);
     if (!file) {
+        // std::ofstream log("log.txt", std::ios::app);
+        // log << "Start program" << std::endl;
+        // log << "Loading cartridge" << std::endl;
         ERRORLOG(error::cantOpenFile);
         return false;
     }
@@ -66,7 +68,11 @@ const NESFile* Cartridge::getNESFile() const {
     return nesFile;
 }
 
-void Cartridge::loadToMemory(Memory* mem) const {
+void Cartridge::loadToMemory(Memory* mem) {
+
+    if(nesFile == null)
+        load();
+
     switch(nesFile->mapper) {
         case 0: { //mapper0
             mem->write(0x8000, nesFile->prg_rom.data(), nesFile->prg_rom.size());
